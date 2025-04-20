@@ -1,11 +1,64 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Task, ReminderSettings, User } from '@/types';
+import { sendWhatsAppMessage } from './whatsapp';
 
 const supabaseUrl = 'https://mxfiuzlatssyfsawsjkm.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Zml1emxhdHNzeWZzYXdzamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxMTU5MzksImV4cCI6MjA2MDY5MTkzOX0.kXbbaSVNmlJVGZ1Rb9CSrdDkT6EHhWSMqSSJ4GHJ4rk';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Reminder function to send WhatsApp messages
+export const sendDailyReminders = async () => {
+  try {
+    // Fetch users with reminder settings
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, name');
+
+    if (userError) throw userError;
+
+    for (const user of users) {
+      // Fetch user's reminder settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('reminder_settings')
+        .select('settings')
+        .eq('user_id', user.id)
+        .single();
+
+      if (settingsError) continue;
+
+      const settings = settingsData.settings;
+
+      // Check if daily reminders are enabled
+      if (settings.dailyReminders?.enabled) {
+        // Fetch tasks for today
+        const { data: tasks, error: tasksError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('deadline', new Date().toISOString());
+
+        if (tasksError) continue;
+
+        // Prepare reminder message
+        const reminderMessage = settings.dailyReminders.message
+          .replace('{tasks}', tasks.map(task => `- ${task.title}`).join('\n'))
+          .replace('{reminder_number}', '1')
+          .replace('{name}', settings.nameInReminder || user.name);
+
+        // Send WhatsApp message
+        if (settings.whatsapp?.enabled) {
+          await sendWhatsAppMessage(
+            settings.whatsapp.phoneNumber, 
+            reminderMessage
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sending daily reminders:', error);
+  }
+};
 
 // Auth functions
 export const signUp = async (email: string, password: string, name: string) => {
@@ -188,32 +241,4 @@ export const updateReminderSettings = async (userId: string, settings: ReminderS
   if (error) throw error;
   
   return data.settings as ReminderSettings;
-};
-
-// Fonnte WhatsApp API
-export const sendWhatsAppMessage = async (phoneNumber: string, message: string) => {
-  try {
-    const response = await fetch('https://api.fonnte.com/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'pnmk5b5ukhCzBfYJL8HY',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        target: phoneNumber,
-        message: message
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to send WhatsApp message');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error sending WhatsApp message:', error);
-    throw error;
-  }
 };

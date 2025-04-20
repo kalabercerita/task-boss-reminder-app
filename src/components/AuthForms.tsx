@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const AuthForms = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   
   // Login form state
@@ -41,6 +43,7 @@ const AuthForms = () => {
         title: "Login Successful",
         description: "Welcome back to TaskBoss!",
       });
+      navigate("/"); // Redirect to dashboard after successful login
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -72,6 +75,7 @@ const AuthForms = () => {
         title: "Registration Successful",
         description: "Welcome to TaskBoss! Please sign in with your new account.",
       });
+      navigate("/login"); // Redirect to login after successful registration
     } catch (error: any) {
       toast({
         title: "Registration Failed",

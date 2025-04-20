@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getTasks } from "@/lib/supabase";
 import { Task } from "@/types";
@@ -24,7 +23,6 @@ const CalendarPage = () => {
         const fetchedTasks = data.length ? data : SAMPLE_TASKS;
         setTasks(fetchedTasks);
         
-        // Group tasks by date
         const groupedTasks: Record<string, Task[]> = {};
         fetchedTasks.forEach(task => {
           const dateKey = format(task.deadline, "yyyy-MM-dd");
@@ -109,6 +107,19 @@ const CalendarPage = () => {
         )}
       </div>
     );
+  };
+
+  const getLocationDescription = (location: string) => {
+    switch (location) {
+      case "BOSQU":
+        return "Kantor";
+      case "RUMAH":
+        return "Rumah";
+      case "HP GOJEK":
+        return "Aplikasi Gojek";
+      default:
+        return location;
+    }
   };
 
   return (
@@ -204,13 +215,13 @@ const CalendarPage = () => {
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline">
-                              {task.pic}
+                              PIC: {task.pic}
                             </Badge>
                             <Badge variant="outline" className={getPriorityColor(task.priority)}>
                               {task.priority}
                             </Badge>
                             <Badge variant="outline" className="bg-secondary">
-                              {task.location}
+                              Lokasi: {task.location} ({getLocationDescription(task.location)})
                             </Badge>
                           </div>
                         </div>

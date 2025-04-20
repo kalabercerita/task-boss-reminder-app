@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -24,7 +23,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  // New task form state
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDeadline, setTaskDeadline] = useState("");
@@ -147,7 +145,6 @@ const Dashboard = () => {
         location: taskLocation,
       });
       
-      // Add the new task to the local state
       setTasks([...tasks, newTask]);
       
       toast({
@@ -155,7 +152,6 @@ const Dashboard = () => {
         description: "Your new task has been created",
       });
       
-      // Reset form and close dialog
       resetForm();
       setIsDialogOpen(false);
     } catch (error: any) {
@@ -191,6 +187,19 @@ const Dashboard = () => {
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
   );
+
+  const getLocationDescription = (location: string) => {
+    switch (location) {
+      case "BOSQU":
+        return "Kantor";
+      case "RUMAH":
+        return "Rumah";
+      case "HP GOJEK":
+        return "Aplikasi Gojek";
+      default:
+        return location;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -321,7 +330,7 @@ const Dashboard = () => {
                       <div>
                         <div className="font-medium">{task.title}</div>
                         <div className="text-xs text-muted-foreground">
-                          {task.pic} • {task.location}
+                          PIC: {task.pic} • Lokasi: {task.location}
                         </div>
                       </div>
                       <div className="flex gap-1">

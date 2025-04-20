@@ -1,5 +1,10 @@
+
 export type Priority = 'low' | 'medium' | 'high';
 export type Status = 'todo' | 'in-progress' | 'completed' | 'overdue' | 'to-review' | 'hold' | 'canceled';
+// Location values represent different workplaces:
+// - BOSQU: Office/Workplace
+// - RUMAH: Home
+// - HP GOJEK: Mobile (Gojek App)
 export type Location = 'BOSQU' | 'RUMAH' | 'HP GOJEK' | string;
 
 export interface Task {
@@ -8,9 +13,9 @@ export interface Task {
   description?: string;
   deadline: Date;
   status: Status;
-  pic: string;
+  pic: string;        // Person In Charge
   priority: Priority;
-  location: Location;
+  location: Location;  // Where the task should be performed
   createdAt: Date;
   updatedAt: Date;
 }

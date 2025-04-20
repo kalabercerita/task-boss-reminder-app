@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -15,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { SAMPLE_TASKS } from "@/lib/default-data";
 
 const TasksPage = () => {
   const { toast } = useToast();
@@ -41,16 +41,35 @@ const TasksPage = () => {
     setLoading(true);
     try {
       const data = await getAllTasks();
-      setTasks(data);
+      // If no tasks are returned, use sample tasks temporarily for testing
+      setTasks(data.length > 0 ? data : SAMPLE_TASKS);
+      
+      if (data.length === 0) {
+        console.log("No tasks found, using sample tasks for testing");
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
+      setTasks(SAMPLE_TASKS);
       toast({
         title: "Error loading tasks",
-        description: "Unable to fetch tasks",
+        description: "Using sample data instead",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLocationDescription = (location: string) => {
+    switch (location) {
+      case "BOSQU":
+        return "Kantor";
+      case "RUMAH":
+        return "Rumah";
+      case "HP GOJEK":
+        return "Aplikasi Gojek";
+      default:
+        return location;
     }
   };
 
@@ -360,8 +379,8 @@ const TasksPage = () => {
                     )}
                     
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge variant="outline">{task.pic}</Badge>
-                      <Badge variant="outline">{task.location}</Badge>
+                      <Badge variant="outline">PIC: {task.pic}</Badge>
+                      <Badge variant="outline">Lokasi: {task.location} ({getLocationDescription(task.location)})</Badge>
                       <Badge variant="outline" className={
                         task.priority === 'high' ? 'bg-red-100 text-red-800' :
                         task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :

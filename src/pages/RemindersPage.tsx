@@ -31,28 +31,32 @@ import { DEFAULT_REMINDER_SETTINGS } from "@/lib/default-data";
 const RemindersPage = () => {
   const { user, setUser } = useAuth();
   const { toast } = useToast();
-  // Initialize settings with the default values including taskStatusMessages
+  // Initialize settings with the default values including contacts array
   const [settings, setSettings] = useState<ReminderSettings>({
     ...DEFAULT_REMINDER_SETTINGS,
     taskStatusMessages: {
       overdue: "terlewat hari / overdue",
       today: "this is the day!!",
       upcoming: "{days} hari lagi"
-    }
+    },
+    contacts: [], // Ensure contacts is initialized as an empty array
+    groups: []    // Ensure groups is initialized as an empty array
   });
   const [isSaving, setIsSaving] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
     if (user && user.reminderSettings) {
-      // Make sure we have a fallback for taskStatusMessages
+      // Make sure we have a fallback for taskStatusMessages and contacts
       const userSettings = {
         ...user.reminderSettings,
         taskStatusMessages: user.reminderSettings.taskStatusMessages || {
           overdue: "terlewat hari / overdue",
           today: "this is the day!!",
           upcoming: "{days} hari lagi"
-        }
+        },
+        contacts: user.reminderSettings.contacts || [],
+        groups: user.reminderSettings.groups || []
       };
       setSettings(userSettings);
     }

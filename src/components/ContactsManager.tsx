@@ -19,9 +19,12 @@ interface ContactsManagerProps {
   onChange: (contacts: Contact[]) => void;
 }
 
-const ContactsManager: React.FC<ContactsManagerProps> = ({ contacts, onChange }) => {
+const ContactsManager: React.FC<ContactsManagerProps> = ({ contacts = [], onChange }) => {
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+
+  // Ensure contacts is always an array
+  const safeContacts = Array.isArray(contacts) ? contacts : [];
 
   const handleAddContact = () => {
     if (!newName || !newPhone) return;
@@ -32,13 +35,13 @@ const ContactsManager: React.FC<ContactsManagerProps> = ({ contacts, onChange })
       phoneNumber: newPhone
     };
     
-    onChange([...contacts, newContact]);
+    onChange([...safeContacts, newContact]);
     setNewName('');
     setNewPhone('');
   };
 
   const handleDeleteContact = (id: string) => {
-    onChange(contacts.filter(contact => contact.id !== id));
+    onChange(safeContacts.filter(contact => contact.id !== id));
   };
 
   return (
@@ -75,7 +78,7 @@ const ContactsManager: React.FC<ContactsManagerProps> = ({ contacts, onChange })
         </div>
       </div>
       
-      {contacts.length > 0 ? (
+      {safeContacts.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -85,7 +88,7 @@ const ContactsManager: React.FC<ContactsManagerProps> = ({ contacts, onChange })
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contacts.map(contact => (
+            {safeContacts.map(contact => (
               <TableRow key={contact.id}>
                 <TableCell>{contact.name}</TableCell>
                 <TableCell>{contact.phoneNumber}</TableCell>

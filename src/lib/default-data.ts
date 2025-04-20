@@ -1,4 +1,3 @@
-
 import { ReminderSettings, Task } from "@/types";
 import { addDays } from "date-fns";
 
@@ -10,20 +9,20 @@ export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
       { time: "12:00", enabled: true },
       { time: "17:00", enabled: true }
     ],
-    message: `Halo, {name} 👋\n\nGue mau ingetin nih! 😎\nIni status tugas lo!:\n\n{tasks}\n\nSampai jumpa besok! 👋 \n\nReminder {reminder_number} via TaskBoss.`
+    message: `Halo, {name} 👋\n\nIni update status tugas:\n\n{tasks}\n\nSampai jumpa besok! 👋 \n\nReminder {reminder_number} via TaskBoss.`
   },
   advanceReminders: {
     enabled: true,
     days: 14,
     time: "07:00",
-    message: `Halo, {name}!! 👋\n\nGue mau ingetin nih!\nUntuk {days} hari ke depan, ada tugas:\n\n{tasks}\n\nHave a nice day!`
+    message: `Halo, {name}! 👋\n\nIngatkan untuk {days} hari ke depan:\n\n{tasks}\n\nHave a nice day!`
   },
   whatsapp: {
-    enabled: true,
+    enabled: false,
     phoneNumber: "",
     useGroups: false,
-    groupId: "",
-    apiKey: "pnmk5b5ukhCzBfYJL8HY"
+    apiKey: "",
+    groupId: ""
   },
   nameInReminder: "BOSQU",
   contacts: [],

@@ -1,7 +1,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateReminderSettings, sendWhatsAppMessage } from "@/lib/supabase";
+import { updateReminderSettings } from "@/lib/supabase";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { ReminderSettings } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

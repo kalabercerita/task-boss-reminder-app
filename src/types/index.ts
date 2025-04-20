@@ -1,4 +1,3 @@
-
 export type Priority = 'low' | 'medium' | 'high';
 export type Status = 'todo' | 'in-progress' | 'completed' | 'overdue' | 'to-review' | 'hold' | 'canceled';
 export type Location = 'BOSQU' | 'RUMAH' | 'HP GOJEK' | string;

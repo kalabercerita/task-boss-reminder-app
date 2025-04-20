@@ -31,13 +31,30 @@ import { DEFAULT_REMINDER_SETTINGS } from "@/lib/default-data";
 const RemindersPage = () => {
   const { user, setUser } = useAuth();
   const { toast } = useToast();
-  const [settings, setSettings] = useState<ReminderSettings>(DEFAULT_REMINDER_SETTINGS);
+  // Initialize settings with the default values including taskStatusMessages
+  const [settings, setSettings] = useState<ReminderSettings>({
+    ...DEFAULT_REMINDER_SETTINGS,
+    taskStatusMessages: {
+      overdue: "terlewat hari / overdue",
+      today: "this is the day!!",
+      upcoming: "{days} hari lagi"
+    }
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
     if (user && user.reminderSettings) {
-      setSettings(user.reminderSettings);
+      // Make sure we have a fallback for taskStatusMessages
+      const userSettings = {
+        ...user.reminderSettings,
+        taskStatusMessages: user.reminderSettings.taskStatusMessages || {
+          overdue: "terlewat hari / overdue",
+          today: "this is the day!!",
+          upcoming: "{days} hari lagi"
+        }
+      };
+      setSettings(userSettings);
     }
   }, [user]);
 
@@ -564,7 +581,7 @@ const RemindersPage = () => {
                     <Label htmlFor="overdue-message">Overdue Tasks</Label>
                     <Input
                       id="overdue-message"
-                      value={settings.taskStatusMessages.overdue}
+                      value={settings.taskStatusMessages?.overdue || "terlewat hari / overdue"}
                       onChange={(e) => handleChangeTaskStatusMessage('overdue', e.target.value)}
                       placeholder="e.g., terlewat hari / overdue"
                     />
@@ -577,7 +594,7 @@ const RemindersPage = () => {
                     <Label htmlFor="today-message">Today's Tasks</Label>
                     <Input
                       id="today-message"
-                      value={settings.taskStatusMessages.today}
+                      value={settings.taskStatusMessages?.today || "this is the day!!"}
                       onChange={(e) => handleChangeTaskStatusMessage('today', e.target.value)}
                       placeholder="e.g., this is the day!!"
                     />
@@ -590,7 +607,7 @@ const RemindersPage = () => {
                     <Label htmlFor="upcoming-message">Upcoming Tasks</Label>
                     <Input
                       id="upcoming-message"
-                      value={settings.taskStatusMessages.upcoming}
+                      value={settings.taskStatusMessages?.upcoming || "{days} hari lagi"}
                       onChange={(e) => handleChangeTaskStatusMessage('upcoming', e.target.value)}
                       placeholder="e.g., {days} hari lagi"
                     />

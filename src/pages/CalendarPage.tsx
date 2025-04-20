@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { getTasks } from "@/lib/supabase";
 import { Task } from "@/types";
@@ -207,9 +208,11 @@ const CalendarPage = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{task.title}</h3>
+                          <h3 className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+                            {task.title}
+                          </h3>
                           {task.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className={`text-sm text-muted-foreground mt-1 ${task.status === 'completed' ? 'line-through' : ''}`}>
                               {task.description}
                             </p>
                           )}

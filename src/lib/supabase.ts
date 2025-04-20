@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Task, ReminderSettings, User, Status } from '@/types';
 import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
@@ -265,25 +266,34 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedA
 export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>) => {
   const updates: any = { ...task };
   
-  if (task.deadline) {
+  if (task.deadline && task.deadline instanceof Date) {
     updates.deadline = task.deadline.toISOString();
   }
   
-  const { data, error } = await supabase
-    .from('tasks')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+  // Make sure we're updating the task with the correct ID format
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error("Error updating task:", error);
+      throw error;
+    }
     
-  if (error) throw error;
-  
-  return {
-    ...data,
-    deadline: new Date(data.deadline),
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
-  } as Task;
+    return {
+      ...data,
+      deadline: new Date(data.deadline),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    } as Task;
+  } catch (error) {
+    console.error("Error in updateTask function:", error);
+    throw error;
+  }
 };
 
 export const deleteTask = async (id: string) => {

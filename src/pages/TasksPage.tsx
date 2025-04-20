@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -134,9 +135,10 @@ const TasksPage = () => {
       // Refresh tasks to ensure proper sorting
       fetchTasks();
     } catch (error: any) {
+      console.error("Error updating task:", error);
       toast({
         title: "Error Updating Task",
-        description: error.message,
+        description: error.message || "Failed to update task status",
         variant: "destructive",
       });
     }
@@ -290,6 +292,7 @@ const TasksPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Swapped Person in Charge (PIC) with Location */}
                 <div className="grid gap-2">
                   <Label htmlFor="pic">Person in Charge</Label>
                   <Input
@@ -373,7 +376,7 @@ const TasksPage = () => {
                     </div>
                     
                     {task.description && (
-                      <div className="text-sm text-muted-foreground">
+                      <div className={`text-sm text-muted-foreground ${task.status === 'completed' ? 'line-through' : ''}`}>
                         {task.description}
                       </div>
                     )}

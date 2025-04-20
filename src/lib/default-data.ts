@@ -1,6 +1,4 @@
-
-import { ReminderSettings, Task } from "@/types";
-import { addDays } from "date-fns";
+import { ReminderSettings } from "@/types";
 
 export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
   dailyReminders: {
@@ -10,35 +8,29 @@ export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
       { time: "12:00", enabled: true },
       { time: "17:00", enabled: true }
     ],
-    message: `Halo, BOSQU 👋
-
-Gue mau ingetin nih! 😎
-Ini status tugas lo!:
-
-{tasks}
-
-Sampai jumpa besok! 👋 
-
-Reminder {reminder_number} via TaskBoss.`
+    message: `Halo, {name} 👋\n\nGue mau ingetin nih! 😎\nIni status tugas lo!:\n\n{tasks}\n\nSampai jumpa besok! 👋 \n\nReminder {reminder_number} via TaskBoss.`
   },
   advanceReminders: {
     enabled: true,
     days: 14,
     time: "07:00",
-    message: `Halo, BOS BESAR!! 👋
-
-Gue mau ingetin nih!
-Untuk {days} hari ke depan, ada tugas:
-
-{tasks}
-
-Have a nice day!`
+    message: `Halo, {name}!! 👋\n\nGue mau ingetin nih!\nUntuk {days} hari ke depan, ada tugas:\n\n{tasks}\n\nHave a nice day!`
   },
   whatsapp: {
     enabled: true,
-    phoneNumber: "081280892755"
+    phoneNumber: "",
+    useGroups: false,
+    groupId: "",
+    apiKey: "pnmk5b5ukhCzBfYJL8HY"
   },
-  nameInReminder: "BOSQU"
+  nameInReminder: "BOSQU",
+  contacts: [],
+  groups: [],
+  taskStatusMessages: {
+    overdue: "terlewat hari / overdue",
+    today: "this is the day!!",
+    upcoming: "{days} hari lagi"
+  }
 };
 
 export const SAMPLE_TASKS: Task[] = [

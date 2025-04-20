@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import ContactsManager from "@/components/ContactsManager";
+import WhatsAppGroupsManager from "@/components/WhatsAppGroupsManager";
 import {
   Card,
   CardContent,
@@ -123,6 +125,16 @@ const RemindersPage = () => {
     });
   };
 
+  const handleToggleWhatsAppGroups = (value: boolean) => {
+    setSettings({
+      ...settings,
+      whatsapp: {
+        ...settings.whatsapp,
+        useGroups: value,
+      },
+    });
+  };
+
   const handleChangeAdvanceDays = (value: string) => {
     setSettings({
       ...settings,
@@ -149,6 +161,26 @@ const RemindersPage = () => {
       whatsapp: {
         ...settings.whatsapp,
         phoneNumber: value,
+      },
+    });
+  };
+
+  const handleChangeFonnteApiKey = (value: string) => {
+    setSettings({
+      ...settings,
+      whatsapp: {
+        ...settings.whatsapp,
+        apiKey: value,
+      },
+    });
+  };
+
+  const handleChangeWhatsAppGroupId = (value: string) => {
+    setSettings({
+      ...settings,
+      whatsapp: {
+        ...settings.whatsapp,
+        groupId: value,
       },
     });
   };
@@ -180,6 +212,30 @@ const RemindersPage = () => {
     });
   };
 
+  const handleChangeContacts = (contacts: ReminderSettings['contacts']) => {
+    setSettings({
+      ...settings,
+      contacts,
+    });
+  };
+
+  const handleChangeGroups = (groups: ReminderSettings['groups']) => {
+    setSettings({
+      ...settings,
+      groups,
+    });
+  };
+
+  const handleChangeTaskStatusMessage = (field: keyof ReminderSettings['taskStatusMessages'], value: string) => {
+    setSettings({
+      ...settings,
+      taskStatusMessages: {
+        ...settings.taskStatusMessages,
+        [field]: value,
+      },
+    });
+  };
+
   const handleTestMessage = async (messageType: 'daily' | 'advance') => {
     if (!settings.whatsapp.enabled) {
       toast({
@@ -206,9 +262,10 @@ const RemindersPage = () => {
         : settings.advanceReminders.message;
       
       const sampleMessage = messageTemplate
-        .replace('{tasks}', 'Sample task 1\nSample task 2')
+        .replace('{tasks}', 'Sample task 1 (BOSQU) - today\nSample task 2 (RUMAH) - tomorrow')
         .replace('{reminder_number}', '1')
-        .replace('{days}', settings.advanceReminders.days.toString());
+        .replace('{days}', settings.advanceReminders.days.toString())
+        .replace('{name}', settings.nameInReminder);
       
       await sendWhatsAppMessage(settings.whatsapp.phoneNumber, sampleMessage);
       
@@ -240,10 +297,12 @@ const RemindersPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="general">General Settings</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5 mb-6">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="contacts">Contacts</TabsTrigger>
               <TabsTrigger value="daily">Daily Status</TabsTrigger>
               <TabsTrigger value="advance">Advance Reminders</TabsTrigger>
+              <TabsTrigger value="status">Status Messages</TabsTrigger>
             </TabsList>
             
             <TabsContent value="general">
@@ -263,7 +322,21 @@ const RemindersPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone-number">WhatsApp Phone Number</Label>
+                  <Label htmlFor="fonnte-api-key">Fonnte API Key</Label>
+                  <Input
+                    id="fonnte-api-key"
+                    value={settings.whatsapp.apiKey}
+                    onChange={(e) => handleChangeFonnteApiKey(e.target.value)}
+                    placeholder="Enter your Fonnte API key"
+                    disabled={!settings.whatsapp.enabled}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Get your API key from <a href="https://fonnte.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Fonnte.com</a>
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone-number">Default WhatsApp Phone Number</Label>
                   <Input
                     id="phone-number"
                     value={settings.whatsapp.phoneNumber}
@@ -275,6 +348,37 @@ const RemindersPage = () => {
                     Enter your WhatsApp number with country code (e.g., 628123456789)
                   </p>
                 </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="whatsapp-groups">Enable Group Reminders</Label>
+                    <Switch
+                      id="whatsapp-groups"
+                      checked={settings.whatsapp.useGroups}
+                      onCheckedChange={handleToggleWhatsAppGroups}
+                      disabled={!settings.whatsapp.enabled}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Send reminders to WhatsApp groups in addition to individual contacts
+                  </p>
+                </div>
+                
+                {settings.whatsapp.useGroups && (
+                  <div className="space-y-2">
+                    <Label htmlFor="group-id">Default WhatsApp Group ID</Label>
+                    <Input
+                      id="group-id"
+                      value={settings.whatsapp.groupId || ''}
+                      onChange={(e) => handleChangeWhatsAppGroupId(e.target.value)}
+                      placeholder="e.g., 1234567890-1234567890@g.us"
+                      disabled={!settings.whatsapp.enabled || !settings.whatsapp.useGroups}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter your WhatsApp group ID (contact Fonnte support for help)
+                    </p>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="name-in-reminder">Your Name in Reminders</Label>
@@ -289,6 +393,22 @@ const RemindersPage = () => {
                   </p>
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="contacts">
+              <ContactsManager 
+                contacts={settings.contacts}
+                onChange={handleChangeContacts}
+              />
+              
+              {settings.whatsapp.useGroups && (
+                <div className="mt-8">
+                  <WhatsAppGroupsManager 
+                    groups={settings.groups}
+                    onChange={handleChangeGroups}
+                  />
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="daily">
@@ -347,7 +467,7 @@ const RemindersPage = () => {
                     disabled={!settings.dailyReminders.enabled}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Use {'{tasks}'} for task list, {'{reminder_number}'} for reminder number
+                    Use {'{tasks}'} for task list, {'{reminder_number}'} for reminder number, {'{name}'} for PIC name
                   </p>
                 </div>
                 
@@ -419,7 +539,7 @@ const RemindersPage = () => {
                     disabled={!settings.advanceReminders.enabled}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Use {'{tasks}'} for task list, {'{days}'} for number of days
+                    Use {'{tasks}'} for task list, {'{days}'} for number of days, {'{name}'} for PIC name
                   </p>
                 </div>
                 
@@ -429,6 +549,56 @@ const RemindersPage = () => {
                 >
                   {testLoading ? "Sending..." : "Test Advance Reminder"}
                 </Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="status">
+              <div className="space-y-6">
+                <h3 className="text-md font-medium">Task Status Messages</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customize how task statuses are displayed in reminders
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="overdue-message">Overdue Tasks</Label>
+                    <Input
+                      id="overdue-message"
+                      value={settings.taskStatusMessages.overdue}
+                      onChange={(e) => handleChangeTaskStatusMessage('overdue', e.target.value)}
+                      placeholder="e.g., terlewat hari / overdue"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Message for tasks that are past due date
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="today-message">Today's Tasks</Label>
+                    <Input
+                      id="today-message"
+                      value={settings.taskStatusMessages.today}
+                      onChange={(e) => handleChangeTaskStatusMessage('today', e.target.value)}
+                      placeholder="e.g., this is the day!!"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Message for tasks due today
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="upcoming-message">Upcoming Tasks</Label>
+                    <Input
+                      id="upcoming-message"
+                      value={settings.taskStatusMessages.upcoming}
+                      onChange={(e) => handleChangeTaskStatusMessage('upcoming', e.target.value)}
+                      placeholder="e.g., {days} hari lagi"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Message for upcoming tasks. Use {'{days}'} to include number of days until due date.
+                    </p>
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

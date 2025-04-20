@@ -1,11 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
-import { Task, ReminderSettings, User } from '@/types';
-import { sendWhatsAppMessage } from './whatsapp';
+import { Task, ReminderSettings, User, Status } from '@/types';
+import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
+import { format, isToday, isPast, isFuture, differenceInDays } from 'date-fns';
 
 const supabaseUrl = 'https://mxfiuzlatssyfsawsjkm.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Zml1emxhdHNzeWZzYXdzamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxMTU5MzksImV4cCI6MjA2MDY5MTkzOX0.kXbbaSVNmlJVGZ1Rb9CSrdDkT6EHhWSMqSSJ4GHJ4rk';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Helper function to format task status message
+export const getTaskStatusMessage = (task: Task, settings: ReminderSettings): string => {
+  if (isPast(task.deadline) && task.status !== 'completed') {
+    return settings.taskStatusMessages.overdue;
+  }
+  if (isToday(task.deadline)) {
+    return settings.taskStatusMessages.today;
+  }
+  if (isFuture(task.deadline)) {
+    const days = differenceInDays(task.deadline, new Date());
+    return settings.taskStatusMessages.upcoming.replace('{days}', days.toString());
+  }
+  return '';
+};
 
 // Reminder function to send WhatsApp messages
 export const sendDailyReminders = async () => {
@@ -27,30 +43,92 @@ export const sendDailyReminders = async () => {
 
       if (settingsError) continue;
 
-      const settings = settingsData.settings;
+      const settings = settingsData.settings as ReminderSettings;
+      
+      // Set the API key for this user
+      if (settings.whatsapp?.apiKey) {
+        setFonnteApiKey(settings.whatsapp.apiKey);
+      }
 
       // Check if daily reminders are enabled
       if (settings.dailyReminders?.enabled) {
-        // Fetch tasks for today
+        // Fetch tasks for today grouped by PIC
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
           .select('*')
           .eq('user_id', user.id)
-          .gte('deadline', new Date().toISOString());
+          .order('deadline', { ascending: true });
 
         if (tasksError) continue;
 
-        // Prepare reminder message
-        const reminderMessage = settings.dailyReminders.message
-          .replace('{tasks}', tasks.map(task => `- ${task.title}`).join('\n'))
-          .replace('{reminder_number}', '1')
-          .replace('{name}', settings.nameInReminder || user.name);
+        // Group tasks by PIC
+        const tasksByPic: Record<string, Task[]> = {};
+        tasks.forEach(task => {
+          const formattedTask = {
+            ...task,
+            deadline: new Date(task.deadline),
+            createdAt: new Date(task.created_at),
+            updatedAt: new Date(task.updated_at)
+          } as Task;
+          
+          if (!tasksByPic[task.pic]) {
+            tasksByPic[task.pic] = [];
+          }
+          
+          tasksByPic[task.pic].push(formattedTask);
+        });
 
-        // Send WhatsApp message
-        if (settings.whatsapp?.enabled) {
-          await sendWhatsAppMessage(
-            settings.whatsapp.phoneNumber, 
-            reminderMessage
+        // Send reminders to each PIC
+        for (const [pic, picTasks] of Object.entries(tasksByPic)) {
+          // Find the contact for this PIC
+          const contact = settings.contacts.find(c => c.name === pic);
+          
+          if (contact && contact.phoneNumber) {
+            const tasksList = picTasks
+              .map(task => `- ${task.title} (${task.location}) - ${getTaskStatusMessage(task, settings)}`)
+              .join('\n');
+            
+            // Prepare reminder message
+            const reminderMessage = settings.dailyReminders.message
+              .replace('{tasks}', tasksList)
+              .replace('{reminder_number}', '1')
+              .replace('{name}', pic);
+            
+            // Send WhatsApp message
+            if (settings.whatsapp?.enabled) {
+              await sendWhatsAppMessage(
+                contact.phoneNumber, 
+                reminderMessage
+              );
+            }
+          }
+        }
+        
+        // If group reminders are enabled
+        if (settings.whatsapp?.enabled && settings.whatsapp?.useGroups && settings.whatsapp?.groupId) {
+          const allTasksList = tasks
+            .map(task => {
+              const formattedTask = {
+                ...task,
+                deadline: new Date(task.deadline),
+                createdAt: new Date(task.created_at),
+                updatedAt: new Date(task.updated_at)
+              } as Task;
+              
+              return `- ${task.title} (${task.location}) - ${task.pic} - ${getTaskStatusMessage(formattedTask, settings)}`;
+            })
+            .join('\n');
+          
+          // Prepare group reminder message
+          const groupReminderMessage = settings.dailyReminders.message
+            .replace('{tasks}', allTasksList)
+            .replace('{reminder_number}', '1')
+            .replace('{name}', 'Team');
+          
+          // Send WhatsApp group message
+          await sendWhatsAppGroupMessage(
+            settings.whatsapp.groupId,
+            groupReminderMessage
           );
         }
       }
@@ -230,7 +308,13 @@ export const getReminderSettings = async (userId: string): Promise<ReminderSetti
   return data.settings as ReminderSettings;
 };
 
+// Update reminder settings function
 export const updateReminderSettings = async (userId: string, settings: ReminderSettings) => {
+  // Set API key if provided
+  if (settings.whatsapp?.apiKey) {
+    setFonnteApiKey(settings.whatsapp.apiKey);
+  }
+  
   const { data, error } = await supabase
     .from('reminder_settings')
     .update({ settings })
@@ -241,4 +325,54 @@ export const updateReminderSettings = async (userId: string, settings: ReminderS
   if (error) throw error;
   
   return data.settings as ReminderSettings;
+};
+
+// Get all tasks with improved sorting
+export const getAllTasks = async (): Promise<Task[]> => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .order('status', { ascending: false })  // Completed tasks at the bottom
+    .order('deadline', { ascending: true }); // Sort by deadline
+    
+  if (error) throw error;
+  
+  // Process tasks and determine status (overdue etc.)
+  const processedTasks = data.map(task => {
+    const deadline = new Date(task.deadline);
+    const now = new Date();
+    
+    // Update the status if the task is overdue
+    let status = task.status;
+    if (isPast(deadline) && task.status !== 'completed' && 
+        task.status !== 'canceled' && task.status !== 'hold') {
+      status = 'overdue';
+    }
+    
+    return {
+      ...task,
+      status,
+      deadline,
+      createdAt: new Date(task.created_at),
+      updatedAt: new Date(task.updated_at)
+    } as Task;
+  });
+  
+  // Sort: overdue first, then today, then future, with completed last
+  return processedTasks.sort((a, b) => {
+    // Completed tasks go to the bottom
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    
+    // Overdue tasks go to the top
+    if (a.status === 'overdue' && b.status !== 'overdue') return -1;
+    if (a.status !== 'overdue' && b.status === 'overdue') return 1;
+    
+    // Today's tasks come next
+    if (isToday(a.deadline) && !isToday(b.deadline)) return -1;
+    if (!isToday(a.deadline) && isToday(b.deadline)) return 1;
+    
+    // Then sort by deadline
+    return a.deadline.getTime() - b.deadline.getTime();
+  });
 };

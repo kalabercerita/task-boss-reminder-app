@@ -1,22 +1,42 @@
 
 import React, { useEffect, useState } from "react";
-import { getTasks } from "@/lib/supabase";
-import { Task, Status, Priority } from "@/types";
+import { getAllTasks, createTask } from "@/lib/supabase";
+import { Task, Status, Priority, Location } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { format, isToday, isPast, isFuture, differenceInDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SAMPLE_TASKS } from "@/lib/default-data";
+import { 
+  Plus, ChevronLeft, ChevronRight, Calendar, Clock, X, Check, 
+  AlertCircle, List
+} from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // New task form state
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [taskDeadline, setTaskDeadline] = useState("");
+  const [taskStatus, setTaskStatus] = useState<Status>("todo");
+  const [taskPic, setTaskPic] = useState("");
+  const [taskPriority, setTaskPriority] = useState<Priority>("medium");
+  const [taskLocation, setTaskLocation] = useState<Location>("BOSQU");
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const data = await getTasks();
+        const data = await getAllTasks();
         setTasks(data.length ? data : SAMPLE_TASKS);
       } catch (error) {
         console.error("Error fetching tasks:", error);
@@ -40,10 +60,35 @@ const Dashboard = () => {
         return "bg-green-500";
       case "in-progress":
         return "bg-blue-500";
+      case "to-review":
+        return "bg-purple-500";
+      case "hold":
+        return "bg-yellow-500";
+      case "canceled":
+        return "bg-gray-500";
       case "overdue":
         return "bg-red-500";
       default:
         return "bg-gray-500";
+    }
+  };
+
+  const getStatusBadgeColor = (status: Status) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "in-progress":
+        return "bg-blue-100 text-blue-800";
+      case "to-review":
+        return "bg-purple-100 text-purple-800";
+      case "hold":
+        return "bg-yellow-100 text-yellow-800";
+      case "canceled":
+        return "bg-gray-100 text-gray-800";
+      case "overdue":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -60,26 +105,198 @@ const Dashboard = () => {
     }
   };
 
+  const getTaskDueText = (deadline: Date) => {
+    if (isPast(deadline) && !isToday(deadline)) {
+      return `Terlewat ${Math.abs(differenceInDays(deadline, new Date()))} hari`;
+    }
+    if (isToday(deadline)) {
+      return "This is the day!!";
+    }
+    const days = differenceInDays(deadline, new Date());
+    return `${days} hari lagi`;
+  };
+
+  const resetForm = () => {
+    setTaskTitle("");
+    setTaskDescription("");
+    setTaskDeadline("");
+    setTaskStatus("todo");
+    setTaskPic("");
+    setTaskPriority("medium");
+    setTaskLocation("BOSQU");
+  };
+
+  const handleCreateTask = async () => {
+    if (!taskTitle || !taskDeadline || !taskPic) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newTask = await createTask({
+        title: taskTitle,
+        description: taskDescription,
+        deadline: new Date(taskDeadline),
+        status: taskStatus,
+        pic: taskPic,
+        priority: taskPriority,
+        location: taskLocation,
+      });
+      
+      // Add the new task to the local state
+      setTasks([...tasks, newTask]);
+      
+      toast({
+        title: "Task Created",
+        description: "Your new task has been created",
+      });
+      
+      // Reset form and close dialog
+      resetForm();
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error Creating Task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const todayTasks = tasks.filter(
-    (task) => format(task.deadline, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+    (task) => isToday(task.deadline)
   );
 
   const upcomingTasks = tasks.filter(
     (task) =>
-      format(task.deadline, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd") &&
-      task.deadline > new Date() &&
-      task.status !== "completed"
+      !isToday(task.deadline) &&
+      isFuture(task.deadline) &&
+      task.status !== "completed" &&
+      task.status !== "canceled"
   );
 
   const overdueTasks = tasks.filter(
-    (task) => task.deadline < new Date() && task.status !== "completed"
+    (task) => 
+      task.status === "overdue" || 
+      (isPast(task.deadline) && 
+       !isToday(task.deadline) && 
+       task.status !== "completed" && 
+       task.status !== "canceled")
   );
 
-  const completedTasks = tasks.filter((task) => task.status === "completed");
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="mr-2 h-4 w-4" /> Quick Add Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Task</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="Task title"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={taskDescription}
+                  onChange={(e) => setTaskDescription(e.target.value)}
+                  placeholder="Task description (optional)"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="deadline">Deadline</Label>
+                <Input
+                  id="deadline"
+                  type="date"
+                  value={taskDeadline}
+                  onChange={(e) => setTaskDeadline(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={taskStatus} onValueChange={(value) => setTaskStatus(value as Status)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todo">Todo</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="to-review">To Review</SelectItem>
+                    <SelectItem value="hold">Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="canceled">Canceled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pic">Person in Charge</Label>
+                <Input
+                  id="pic"
+                  value={taskPic}
+                  onChange={(e) => setTaskPic(e.target.value)}
+                  placeholder="Who is responsible"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={taskPriority} onValueChange={(value) => setTaskPriority(value as Priority)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="location">Location</Label>
+                <Select value={taskLocation} onValueChange={(value) => setTaskLocation(value as Location)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BOSQU">BOSQU</SelectItem>
+                    <SelectItem value="RUMAH">RUMAH</SelectItem>
+                    <SelectItem value="HP GOJEK">HP GOJEK</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTask}>
+                Create Task
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
       
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -103,13 +320,14 @@ const Dashboard = () => {
                     <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
                       <div>
                         <div className="font-medium">{task.title}</div>
-                        <div className="text-xs text-muted-foreground">{task.pic}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {task.pic} • {task.location}
+                        </div>
                       </div>
                       <div className="flex gap-1">
-                        <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                          {task.priority}
+                        <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
+                          {task.status}
                         </Badge>
-                        <div className={`h-2 w-2 rounded-full ${getStatusColor(task.status)}`} />
                       </div>
                     </div>
                   ))
@@ -145,10 +363,13 @@ const Dashboard = () => {
                         <div className="font-medium">{task.title}</div>
                         <div className="text-xs text-muted-foreground">
                           {format(task.deadline, "MMM d, yyyy")} • {task.pic}
+                          <div className="text-xs italic mt-1">
+                            {getTaskDueText(task.deadline)}
+                          </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                        {task.priority}
+                      <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
+                        {task.status}
                       </Badge>
                     </div>
                   ))
@@ -184,10 +405,13 @@ const Dashboard = () => {
                         <div className="font-medium">{task.title}</div>
                         <div className="text-xs text-destructive">
                           Due {format(task.deadline, "MMM d, yyyy")} • {task.pic}
+                          <div className="text-xs italic mt-1">
+                            {getTaskDueText(task.deadline)}
+                          </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                        {task.priority}
+                      <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
+                        {task.status}
                       </Badge>
                     </div>
                   ))
@@ -222,7 +446,7 @@ const Dashboard = () => {
                       <div>
                         <div className="font-medium line-through">{task.title}</div>
                         <div className="text-xs text-muted-foreground">
-                          {task.pic}
+                          {task.pic} • {task.location}
                         </div>
                       </div>
                       <Badge variant="outline">Completed</Badge>

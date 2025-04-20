@@ -1,6 +1,6 @@
 
 export type Priority = 'low' | 'medium' | 'high';
-export type Status = 'todo' | 'in-progress' | 'completed' | 'overdue';
+export type Status = 'todo' | 'in-progress' | 'completed' | 'overdue' | 'to-review' | 'hold' | 'canceled';
 export type Location = 'BOSQU' | 'RUMAH' | 'HP GOJEK' | string;
 
 export interface Task {
@@ -14,6 +14,18 @@ export interface Task {
   location: Location;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Contact {
+  id: string;
+  name: string;
+  phoneNumber: string;
+}
+
+export interface WhatsAppGroup {
+  id: string;
+  name: string;
+  groupId: string;
 }
 
 export interface ReminderSettings {
@@ -34,8 +46,18 @@ export interface ReminderSettings {
   whatsapp: {
     enabled: boolean;
     phoneNumber: string;
+    useGroups: boolean;
+    groupId?: string;
+    apiKey: string;
   };
   nameInReminder: string;
+  contacts: Contact[];
+  groups: WhatsAppGroup[];
+  taskStatusMessages: {
+    overdue: string;
+    today: string;
+    upcoming: string;
+  };
 }
 
 export interface User {

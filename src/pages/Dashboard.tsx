@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -74,6 +73,27 @@ const Dashboard = () => {
 
     fetchTasks();
   }, [toast]);
+
+  const upcomingTasks = tasks.filter((task) => 
+    isFuture(task.deadline) && 
+    task.status !== "completed" && 
+    task.status !== "canceled"
+  );
+
+  const overdueTasks = tasks.filter(
+    (task) => 
+      !isToday(task.deadline) &&
+      (task.status === "overdue" ||
+        (isPast(task.deadline) &&
+        task.status !== "completed" &&
+        task.status !== "canceled" &&
+        task.status !== "hold" &&
+        task.status !== "to-review"))
+  );
+
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  );
 
   const prepareMonthlyTaskData = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -159,13 +179,6 @@ const Dashboard = () => {
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();
   const locationData = prepareLocationData(tasks);
-
-  // Define upcomingTasks here to resolve the reference error
-  const upcomingTasks = tasks.filter((task) => 
-    isFuture(task.deadline) && 
-    task.status !== "completed" && 
-    task.status !== "canceled"
-  );
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -279,20 +292,6 @@ const Dashboard = () => {
   };
 
   const todayTasks = tasks.filter((task) => isToday(task.deadline));
-  
-  // Fix the type error by using type guards
-  const overdueTasks = tasks.filter(
-    (task) => 
-      !isToday(task.deadline) &&
-      (task.status === "overdue" ||
-        (isPast(task.deadline) &&
-        task.status !== "completed" &&
-        task.status !== "canceled"))
-  );
-
-  const completedTasks = tasks.filter(
-    (task) => task.status === "completed"
-  );
 
   const getLocationDescription = (location: string) => {
     switch (location) {

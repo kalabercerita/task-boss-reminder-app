@@ -82,7 +82,7 @@ const Dashboard = () => {
     task.status !== "canceled"
   );
 
-  // Fix the type comparison error by correctly checking string values
+  // Fix the type comparison error by using type-safe comparisons for string values
   const overdueTasks = tasks.filter(
     (task) => 
       !isToday(task.deadline) &&
@@ -145,7 +145,11 @@ const Dashboard = () => {
         statusData[1].value += 1;
       } else if (task.status === 'completed') {
         statusData[2].value += 1;
-      } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled' && task.status !== 'hold' && task.status !== 'to-review')) {
+      } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                  task.status !== 'completed' && 
+                  task.status !== 'canceled' && 
+                  task.status !== 'hold' && 
+                  task.status !== 'to-review')) {
         statusData[3].value += 1;
       } else if (task.status === 'hold') {
         statusData[4].value += 1;

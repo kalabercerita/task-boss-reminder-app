@@ -159,26 +159,6 @@ const Dashboard = () => {
     
     return statusData.filter(status => status.value > 0);
   };
-  
-  const preparePriorityData = () => {
-    const priorityData = [
-      { name: 'High', value: 0, color: '#ef4444' },
-      { name: 'Medium', value: 0, color: '#eab308' },
-      { name: 'Low', value: 0, color: '#22c55e' }
-    ];
-    
-    tasks.forEach(task => {
-      if (task.priority === 'high') {
-        priorityData[0].value += 1;
-      } else if (task.priority === 'medium') {
-        priorityData[1].value += 1;
-      } else if (task.priority === 'low') {
-        priorityData[2].value += 1;
-      }
-    });
-    
-    return priorityData.filter(priority => priority.value > 0);
-  };
 
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();
@@ -240,7 +220,7 @@ const Dashboard = () => {
       return `Terlewat ${Math.abs(differenceInDays(deadline, new Date()))} hari`;
     }
     if (isToday(deadline)) {
-      return "This is the day!!";
+      return "You must to do!";
     }
     const days = differenceInDays(deadline, new Date());
     return `${days} hari lagi`;

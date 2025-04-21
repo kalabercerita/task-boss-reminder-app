@@ -24,9 +24,17 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_REMINDER_SETTINGS } from "@/lib/default-data";
+import { Check, Users } from "lucide-react";
 
 const RemindersPage = () => {
   const { user, setUser } = useAuth();
@@ -39,15 +47,28 @@ const RemindersPage = () => {
       today: "this is the day!!",
       upcoming: "{days} hari lagi"
     },
-    contacts: [], // Ensure contacts is initialized as an empty array
-    groups: []    // Ensure groups is initialized as an empty array
+    contacts: [],
+    groups: [],
+    dailyTargets: {
+      useIndividual: true,
+      useGroups: false,
+      selectedContacts: [],
+      selectedGroups: []
+    },
+    advanceTargets: {
+      useIndividual: true,
+      useGroups: false,
+      selectedContacts: [],
+      selectedGroups: []
+    }
   });
+  
   const [isSaving, setIsSaving] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
     if (user && user.reminderSettings) {
-      // Make sure we have a fallback for taskStatusMessages and contacts
+      // Make sure we have a fallback for taskStatusMessages, contacts, and targets
       const userSettings = {
         ...user.reminderSettings,
         taskStatusMessages: user.reminderSettings.taskStatusMessages || {
@@ -56,7 +77,19 @@ const RemindersPage = () => {
           upcoming: "{days} hari lagi"
         },
         contacts: user.reminderSettings.contacts || [],
-        groups: user.reminderSettings.groups || []
+        groups: user.reminderSettings.groups || [],
+        dailyTargets: user.reminderSettings.dailyTargets || {
+          useIndividual: true,
+          useGroups: false,
+          selectedContacts: [],
+          selectedGroups: []
+        },
+        advanceTargets: user.reminderSettings.advanceTargets || {
+          useIndividual: true,
+          useGroups: false,
+          selectedContacts: [],
+          selectedGroups: []
+        }
       };
       setSettings(userSettings);
     }
@@ -67,6 +100,12 @@ const RemindersPage = () => {
     
     setIsSaving(true);
     try {
+      // Ensure API key is set before sending test messages
+      if (settings.whatsapp?.apiKey) {
+        // Update the API key in the whatsapp.ts module
+        await sendWhatsAppMessage("", "", true, settings.whatsapp.apiKey);
+      }
+      
       const updatedSettings = await updateReminderSettings(user.id, settings);
       
       // Update user context with new settings
@@ -257,6 +296,69 @@ const RemindersPage = () => {
     });
   };
 
+  // New handlers for target selections
+  const handleToggleDailyTarget = (target: 'individual' | 'groups', value: boolean) => {
+    setSettings({
+      ...settings,
+      dailyTargets: {
+        ...settings.dailyTargets,
+        useIndividual: target === 'individual' ? value : settings.dailyTargets.useIndividual,
+        useGroups: target === 'groups' ? value : settings.dailyTargets.useGroups,
+      },
+    });
+  };
+
+  const handleToggleAdvanceTarget = (target: 'individual' | 'groups', value: boolean) => {
+    setSettings({
+      ...settings,
+      advanceTargets: {
+        ...settings.advanceTargets,
+        useIndividual: target === 'individual' ? value : settings.advanceTargets.useIndividual,
+        useGroups: target === 'groups' ? value : settings.advanceTargets.useGroups,
+      },
+    });
+  };
+
+  const handleSelectDailyContacts = (selectedContacts: string[]) => {
+    setSettings({
+      ...settings,
+      dailyTargets: {
+        ...settings.dailyTargets,
+        selectedContacts,
+      },
+    });
+  };
+
+  const handleSelectDailyGroups = (selectedGroups: string[]) => {
+    setSettings({
+      ...settings,
+      dailyTargets: {
+        ...settings.dailyTargets,
+        selectedGroups,
+      },
+    });
+  };
+
+  const handleSelectAdvanceContacts = (selectedContacts: string[]) => {
+    setSettings({
+      ...settings,
+      advanceTargets: {
+        ...settings.advanceTargets,
+        selectedContacts,
+      },
+    });
+  };
+
+  const handleSelectAdvanceGroups = (selectedGroups: string[]) => {
+    setSettings({
+      ...settings,
+      advanceTargets: {
+        ...settings.advanceTargets,
+        selectedGroups,
+      },
+    });
+  };
+
   const handleTestMessage = async (messageType: 'daily' | 'advance') => {
     if (!settings.whatsapp.enabled) {
       toast({
@@ -267,10 +369,10 @@ const RemindersPage = () => {
       return;
     }
     
-    if (!settings.whatsapp.phoneNumber) {
+    if (!settings.whatsapp.phoneNumber && !settings.dailyTargets.selectedContacts?.length) {
       toast({
-        title: "No Phone Number",
-        description: "Please enter a phone number for testing",
+        title: "No Recipients Selected",
+        description: "Please enter a phone number or select contacts for testing",
         variant: "destructive",
       });
       return;
@@ -278,6 +380,12 @@ const RemindersPage = () => {
     
     setTestLoading(true);
     try {
+      // Ensure the API key is set for testing
+      if (settings.whatsapp?.apiKey) {
+        // Update the API key in the whatsapp.ts module
+        await sendWhatsAppMessage("", "", true, settings.whatsapp.apiKey);
+      }
+      
       const messageTemplate = messageType === 'daily' 
         ? settings.dailyReminders.message 
         : settings.advanceReminders.message;
@@ -288,12 +396,21 @@ const RemindersPage = () => {
         .replace('{days}', settings.advanceReminders.days.toString())
         .replace('{name}', settings.nameInReminder);
       
-      await sendWhatsAppMessage(settings.whatsapp.phoneNumber, sampleMessage);
+      // Get target phone number (default or first selected contact)
+      const targetPhone = settings.whatsapp.phoneNumber || 
+        (settings.contacts.find(c => 
+          settings.dailyTargets.selectedContacts?.includes(c.name))?.phoneNumber || "");
       
-      toast({
-        title: "Test Message Sent",
-        description: "WhatsApp test message was sent successfully",
-      });
+      if (targetPhone) {
+        await sendWhatsAppMessage(targetPhone, sampleMessage);
+        
+        toast({
+          title: "Test Message Sent",
+          description: "WhatsApp test message was sent successfully",
+        });
+      } else {
+        throw new Error("No valid phone number found for testing");
+      }
     } catch (error: any) {
       toast({
         title: "Error Sending Test Message",
@@ -478,6 +595,117 @@ const RemindersPage = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Reminder Recipients</h3>
+                  <div className="p-4 border rounded-md space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        <span>Individual Contacts</span>
+                      </div>
+                      <Switch
+                        checked={settings.dailyTargets?.useIndividual || false}
+                        onCheckedChange={(value) => handleToggleDailyTarget('individual', value)}
+                        disabled={!settings.dailyReminders.enabled}
+                      />
+                    </div>
+                    
+                    {settings.dailyTargets?.useIndividual && (
+                      <div className="ml-6 space-y-2">
+                        <Label>Select Contacts</Label>
+                        <Select
+                          value="select"
+                          disabled={!settings.dailyReminders.enabled}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={
+                              settings.dailyTargets?.selectedContacts?.length 
+                                ? `${settings.dailyTargets.selectedContacts.length} contacts selected` 
+                                : "Select contacts"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.contacts.map(contact => (
+                              <div key={contact.name} className="flex items-center space-x-2 p-2">
+                                <input
+                                  type="checkbox"
+                                  id={`daily-contact-${contact.name}`}
+                                  checked={settings.dailyTargets?.selectedContacts?.includes(contact.name) || false}
+                                  onChange={(e) => {
+                                    const currentSelected = settings.dailyTargets?.selectedContacts || [];
+                                    if (e.target.checked) {
+                                      handleSelectDailyContacts([...currentSelected, contact.name]);
+                                    } else {
+                                      handleSelectDailyContacts(currentSelected.filter(name => name !== contact.name));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor={`daily-contact-${contact.name}`}>{contact.name}</label>
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Select which contacts should receive daily reminders
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>WhatsApp Groups</span>
+                      </div>
+                      <Switch
+                        checked={settings.dailyTargets?.useGroups || false}
+                        onCheckedChange={(value) => handleToggleDailyTarget('groups', value)}
+                        disabled={!settings.dailyReminders.enabled || !settings.whatsapp.useGroups}
+                      />
+                    </div>
+                    
+                    {settings.dailyTargets?.useGroups && settings.whatsapp.useGroups && (
+                      <div className="ml-6 space-y-2">
+                        <Label>Select Groups</Label>
+                        <Select
+                          value="select"
+                          disabled={!settings.dailyReminders.enabled}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={
+                              settings.dailyTargets?.selectedGroups?.length 
+                                ? `${settings.dailyTargets.selectedGroups.length} groups selected` 
+                                : "Select groups"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.groups.map(group => (
+                              <div key={group.name} className="flex items-center space-x-2 p-2">
+                                <input
+                                  type="checkbox"
+                                  id={`daily-group-${group.name}`}
+                                  checked={settings.dailyTargets?.selectedGroups?.includes(group.name) || false}
+                                  onChange={(e) => {
+                                    const currentSelected = settings.dailyTargets?.selectedGroups || [];
+                                    if (e.target.checked) {
+                                      handleSelectDailyGroups([...currentSelected, group.name]);
+                                    } else {
+                                      handleSelectDailyGroups(currentSelected.filter(name => name !== group.name));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor={`daily-group-${group.name}`}>{group.name}</label>
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Select which groups should receive daily reminders
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="daily-message">Daily Reminder Message Template</Label>
                   <Textarea
                     id="daily-message"
@@ -550,6 +778,117 @@ const RemindersPage = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Reminder Recipients</h3>
+                  <div className="p-4 border rounded-md space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        <span>Individual Contacts</span>
+                      </div>
+                      <Switch
+                        checked={settings.advanceTargets?.useIndividual || false}
+                        onCheckedChange={(value) => handleToggleAdvanceTarget('individual', value)}
+                        disabled={!settings.advanceReminders.enabled}
+                      />
+                    </div>
+                    
+                    {settings.advanceTargets?.useIndividual && (
+                      <div className="ml-6 space-y-2">
+                        <Label>Select Contacts</Label>
+                        <Select
+                          value="select"
+                          disabled={!settings.advanceReminders.enabled}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={
+                              settings.advanceTargets?.selectedContacts?.length 
+                                ? `${settings.advanceTargets.selectedContacts.length} contacts selected` 
+                                : "Select contacts"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.contacts.map(contact => (
+                              <div key={contact.name} className="flex items-center space-x-2 p-2">
+                                <input
+                                  type="checkbox"
+                                  id={`advance-contact-${contact.name}`}
+                                  checked={settings.advanceTargets?.selectedContacts?.includes(contact.name) || false}
+                                  onChange={(e) => {
+                                    const currentSelected = settings.advanceTargets?.selectedContacts || [];
+                                    if (e.target.checked) {
+                                      handleSelectAdvanceContacts([...currentSelected, contact.name]);
+                                    } else {
+                                      handleSelectAdvanceContacts(currentSelected.filter(name => name !== contact.name));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor={`advance-contact-${contact.name}`}>{contact.name}</label>
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Select which contacts should receive advance reminders
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>WhatsApp Groups</span>
+                      </div>
+                      <Switch
+                        checked={settings.advanceTargets?.useGroups || false}
+                        onCheckedChange={(value) => handleToggleAdvanceTarget('groups', value)}
+                        disabled={!settings.advanceReminders.enabled || !settings.whatsapp.useGroups}
+                      />
+                    </div>
+                    
+                    {settings.advanceTargets?.useGroups && settings.whatsapp.useGroups && (
+                      <div className="ml-6 space-y-2">
+                        <Label>Select Groups</Label>
+                        <Select
+                          value="select"
+                          disabled={!settings.advanceReminders.enabled}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={
+                              settings.advanceTargets?.selectedGroups?.length 
+                                ? `${settings.advanceTargets.selectedGroups.length} groups selected` 
+                                : "Select groups"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {settings.groups.map(group => (
+                              <div key={group.name} className="flex items-center space-x-2 p-2">
+                                <input
+                                  type="checkbox"
+                                  id={`advance-group-${group.name}`}
+                                  checked={settings.advanceTargets?.selectedGroups?.includes(group.name) || false}
+                                  onChange={(e) => {
+                                    const currentSelected = settings.advanceTargets?.selectedGroups || [];
+                                    if (e.target.checked) {
+                                      handleSelectAdvanceGroups([...currentSelected, group.name]);
+                                    } else {
+                                      handleSelectAdvanceGroups(currentSelected.filter(name => name !== group.name));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor={`advance-group-${group.name}`}>{group.name}</label>
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Select which groups should receive advance reminders
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="advance-message">Advance Reminder Message Template</Label>
                   <Textarea
                     id="advance-message"
@@ -598,9 +937,9 @@ const RemindersPage = () => {
                     <Label htmlFor="today-message">Today's Tasks</Label>
                     <Input
                       id="today-message"
-                      value={settings.taskStatusMessages?.today || "this is the day!!"}
+                      value={settings.taskStatusMessages?.today || "You must to do!"}
                       onChange={(e) => handleChangeTaskStatusMessage('today', e.target.value)}
-                      placeholder="e.g., this is the day!!"
+                      placeholder="e.g., You must to do!"
                     />
                     <p className="text-sm text-muted-foreground">
                       Message for tasks due today

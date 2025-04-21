@@ -1,5 +1,6 @@
+// Import the UserPreferences type
+import { Task, ReminderSettings, User, Status, UserPreferences } from '@/types';
 import { createClient } from '@supabase/supabase-js';
-import { Task, ReminderSettings, User, Status } from '@/types';
 import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
 import { format, isToday, isPast, isFuture, differenceInDays } from 'date-fns';
 import { SAMPLE_TASKS } from './default-data';
@@ -446,6 +447,27 @@ export const getAllTasks = async (): Promise<Task[]> => {
     });
   } catch (error) {
     console.error("Error in getAllTasks function:", error);
+    throw error;
+  }
+};
+
+// Add this new function to update user preferences
+export const updateUserPreferences = async (userId: string, preferences: UserPreferences) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .upsert({
+        user_id: userId,
+        preferences
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return data.preferences as UserPreferences;
+  } catch (error) {
+    console.error('Error updating user preferences:', error);
     throw error;
   }
 };

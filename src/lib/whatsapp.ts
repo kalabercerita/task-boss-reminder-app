@@ -10,8 +10,18 @@ export const getFonnteApiKey = () => {
   return FONNTE_API_KEY;
 };
 
-export const sendWhatsAppMessage = async (phoneNumber: string, message: string) => {
+export const sendWhatsAppMessage = async (phoneNumber: string, message: string, updateApiKeyOnly = false, newApiKey?: string) => {
   try {
+    // If newApiKey is provided, update the API key
+    if (newApiKey) {
+      FONNTE_API_KEY = newApiKey;
+    }
+    
+    // If updateApiKeyOnly is true, just return after updating the API key
+    if (updateApiKeyOnly) {
+      return { success: true, message: "API key updated" };
+    }
+    
     const response = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       headers: {

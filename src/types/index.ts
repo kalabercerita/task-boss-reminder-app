@@ -1,35 +1,36 @@
-
+export type Status = 'todo' | 'in-progress' | 'to-review' | 'hold' | 'completed' | 'canceled' | 'overdue';
 export type Priority = 'low' | 'medium' | 'high';
-export type Status = 'todo' | 'in-progress' | 'completed' | 'overdue' | 'to-review' | 'hold' | 'canceled';
-// Location values represent different workplaces:
-// - BOSQU: Office/Workplace
-// - RUMAH: Home
-// - HP GOJEK: Mobile (Gojek App)
-export type Location = 'BOSQU' | 'RUMAH' | 'HP GOJEK' | string;
+export type Location = string;
 
 export interface Task {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   deadline: Date;
   status: Status;
-  pic: string;        // Person In Charge
+  pic: string;
   priority: Priority;
-  location: Location;  // Where the task should be performed
+  location: Location;
   createdAt: Date;
   updatedAt: Date;
+  user_id: string;
 }
 
 export interface Contact {
-  id: string;
   name: string;
   phoneNumber: string;
 }
 
 export interface WhatsAppGroup {
-  id: string;
   name: string;
   groupId: string;
+}
+
+export interface ReminderTargets {
+  useIndividual: boolean;
+  useGroups: boolean;
+  selectedContacts: string[];
+  selectedGroups: string[];
 }
 
 export interface ReminderSettings {
@@ -50,23 +51,32 @@ export interface ReminderSettings {
   whatsapp: {
     enabled: boolean;
     phoneNumber: string;
-    useGroups: boolean;
+    apiKey?: string;
+    useGroups?: boolean;
     groupId?: string;
-    apiKey: string;
   };
   nameInReminder: string;
-  contacts: Contact[];
-  groups: WhatsAppGroup[];
   taskStatusMessages: {
     overdue: string;
     today: string;
     upcoming: string;
   };
+  contacts: Contact[];
+  groups: WhatsAppGroup[];
+  dailyTargets?: ReminderTargets;
+  advanceTargets?: ReminderTargets;
+}
+
+export interface UserPreferences {
+  theme: string;
+  backgroundColor: string;
+  locations: string[];
 }
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  reminderSettings: ReminderSettings;
+  reminderSettings?: ReminderSettings;
+  preferences?: UserPreferences;
 }

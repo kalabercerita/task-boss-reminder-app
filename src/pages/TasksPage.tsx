@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask, deleteAllTasks } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -24,7 +23,7 @@ const TasksPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'date' | 'list'>('list');
+  const [viewMode, setViewMode<'date' | 'list'>('list');
   
   // New task form state
   const [taskTitle, setTaskTitle] = useState("");
@@ -427,7 +426,7 @@ const TasksPage = () => {
                       <Badge variant="outline" className={
                         task.priority === 'high' ? 'bg-red-100 text-red-800' :
                         task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
+                        task.priority === 'green' ? 'bg-green-100 text-green-800' : ''
                       }>
                         {task.priority} Priority
                       </Badge>

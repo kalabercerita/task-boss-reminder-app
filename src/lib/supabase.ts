@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Task, ReminderSettings, User, Status } from '@/types';
 import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
@@ -237,8 +238,14 @@ export const getTasks = async () => {
   })) as Task[];
 };
 
-export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>) => {
   try {
+    // Get current user
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error("You must be logged in to create a task");
+    }
+
     const { data, error } = await supabase
       .from('tasks')
       .insert({
@@ -248,7 +255,8 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedA
         status: task.status,
         pic: task.pic,
         priority: task.priority,
-        location: task.location
+        location: task.location,
+        user_id: currentUser.id
       })
       .select()
       .single();
@@ -270,7 +278,7 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedA
   }
 };
 
-export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>) => {
+export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>>) => {
   const updates: any = { ...task };
   
   if (task.deadline && task.deadline instanceof Date) {
@@ -325,10 +333,16 @@ export const deleteTask = async (id: string) => {
 
 export const deleteAllTasks = async () => {
   try {
+    // Get current user
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error("You must be logged in to delete tasks");
+    }
+    
     const { error } = await supabase
       .from('tasks')
       .delete()
-      .neq('id', ''); // Delete all rows
+      .eq('user_id', currentUser.id);
       
     if (error) {
       console.error("Error deleting all tasks:", error);
@@ -374,50 +388,64 @@ export const updateReminderSettings = async (userId: string, settings: ReminderS
 
 // Get all tasks with improved sorting
 export const getAllTasks = async (): Promise<Task[]> => {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .order('status', { ascending: false })  // Completed tasks at the bottom
-    .order('deadline', { ascending: true }); // Sort by deadline
-    
-  if (error) throw error;
-  
-  // Process tasks and determine status (overdue etc.)
-  const processedTasks = data.map(task => {
-    const deadline = new Date(task.deadline);
-    const now = new Date();
-    
-    // Update the status if the task is overdue
-    let status = task.status;
-    if (isPast(deadline) && task.status !== 'completed' && 
-        task.status !== 'canceled' && task.status !== 'hold') {
-      status = 'overdue';
+  try {
+    // Get current user
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      console.warn("No logged in user found, returning sample data.");
+      return SAMPLE_TASKS;
     }
     
-    return {
-      ...task,
-      status,
-      deadline,
-      createdAt: new Date(task.created_at),
-      updatedAt: new Date(task.updated_at)
-    } as Task;
-  });
-  
-  // Sort: overdue first, then today, then future, with completed last
-  return processedTasks.sort((a, b) => {
-    // Completed tasks go to the bottom
-    if (a.status === 'completed' && b.status !== 'completed') return 1;
-    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('status', { ascending: false })  // Completed tasks at the bottom
+      .order('deadline', { ascending: true }); // Sort by deadline
+      
+    if (error) throw error;
     
-    // Overdue tasks go to the top
-    if (a.status === 'overdue' && b.status !== 'overdue') return -1;
-    if (a.status !== 'overdue' && b.status === 'overdue') return 1;
+    // Process tasks and determine status (overdue etc.)
+    const processedTasks = data.map(task => {
+      const deadline = new Date(task.deadline);
+      const now = new Date();
+      
+      // Update the status if the task is overdue
+      let status = task.status;
+      if (isPast(deadline) && task.status !== 'completed' && 
+          task.status !== 'canceled' && task.status !== 'hold' &&
+          task.status !== 'to-review') {
+        status = 'overdue';
+      }
+      
+      return {
+        ...task,
+        status,
+        deadline,
+        createdAt: new Date(task.created_at),
+        updatedAt: new Date(task.updated_at)
+      } as Task;
+    });
     
-    // Today's tasks come next
-    if (isToday(a.deadline) && !isToday(b.deadline)) return -1;
-    if (!isToday(a.deadline) && isToday(b.deadline)) return 1;
-    
-    // Then sort by deadline
-    return a.deadline.getTime() - b.deadline.getTime();
-  });
+    // Sort: overdue first, then today, then future, with completed last
+    return processedTasks.sort((a, b) => {
+      // Completed tasks go to the bottom
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      
+      // Overdue tasks go to the top
+      if (a.status === 'overdue' && b.status !== 'overdue') return -1;
+      if (a.status !== 'overdue' && b.status === 'overdue') return 1;
+      
+      // Today's tasks come next
+      if (isToday(a.deadline) && !isToday(b.deadline)) return -1;
+      if (!isToday(a.deadline) && isToday(b.deadline)) return 1;
+      
+      // Then sort by deadline
+      return a.deadline.getTime() - b.deadline.getTime();
+    });
+  } catch (error) {
+    console.error("Error in getAllTasks function:", error);
+    throw error;
+  }
 };

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -75,14 +74,12 @@ const Dashboard = () => {
     fetchTasks();
   }, [toast]);
 
-  // Define filtered task collections
   const upcomingTasks = tasks.filter((task) => 
     isFuture(task.deadline) && 
     task.status !== "completed" && 
     task.status !== "canceled"
   );
 
-  // Fix the type comparison error by using type-safe string comparisons
   const overdueTasks = tasks.filter(
     (task) => 
       !isToday(task.deadline) &&

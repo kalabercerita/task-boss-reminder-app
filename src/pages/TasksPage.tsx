@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask, deleteAllTasks } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -23,7 +24,7 @@ const TasksPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode<'date' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'date' | 'list'>('list');
   
   // New task form state
   const [taskTitle, setTaskTitle] = useState("");

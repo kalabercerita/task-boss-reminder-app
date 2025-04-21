@@ -268,9 +268,7 @@ const Dashboard = () => {
       (isPast(task.deadline) && 
        !isToday(task.deadline) && 
        task.status !== "completed" && 
-       task.status !== "canceled" &&
-       task.status !== "hold" &&
-       task.status !== "to-review")
+       task.status !== "canceled")
   );
 
   const completedTasks = tasks.filter(

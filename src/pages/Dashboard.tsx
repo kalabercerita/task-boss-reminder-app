@@ -82,7 +82,7 @@ const Dashboard = () => {
     task.status !== "canceled"
   );
 
-  // Fix the type comparison error by using type-safe comparisons for string values
+  // Fix the type comparison error by using type-safe string comparisons
   const overdueTasks = tasks.filter(
     (task) => 
       !isToday(task.deadline) &&

@@ -18,6 +18,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import ColorThemeSwitcher from "../components/ColorThemeSwitcher";
+
+const prepareLocationData = (tasks: Task[]) => {
+  const colorMap: Record<string, string> = {
+    "BOSQU": "#818cf8",
+    "RUMAH": "#34d399",
+    "HP GOJEK": "#fbbf24",
+    "LAINNYA": "#94a3b8"
+  };
+  const tmp: Record<string, number> = {};
+  tasks.forEach((t) => {
+    const loc = ["BOSQU", "RUMAH", "HP GOJEK"].includes(t.location) ? t.location : "LAINNYA";
+    tmp[loc] = (tmp[loc] || 0) + 1;
+  });
+  return Object.entries(tmp).map(([name, count]) => ({
+    name,
+    value: count,
+    color: colorMap[name] || "#d1d5db"
+  }));
+};
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -137,7 +157,7 @@ const Dashboard = () => {
 
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();
-  const priorityData = preparePriorityData();
+  const locationData = prepareLocationData(tasks);
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -250,25 +270,14 @@ const Dashboard = () => {
     }
   };
 
-  const todayTasks = tasks.filter(
-    (task) => isToday(task.deadline)
-  );
-
-  const upcomingTasks = tasks.filter(
-    (task) =>
-      !isToday(task.deadline) &&
-      isFuture(task.deadline) &&
-      task.status !== "completed" &&
-      task.status !== "canceled"
-  );
-
+  const todayTasks = tasks.filter((task) => isToday(task.deadline));
   const overdueTasks = tasks.filter(
     (task) => 
-      task.status === "overdue" || 
-      (isPast(task.deadline) && 
-       !isToday(task.deadline) && 
-       task.status !== "completed" && 
-       task.status !== "canceled")
+      !isToday(task.deadline) &&
+      (task.status === "overdue" ||
+        (isPast(task.deadline) &&
+        task.status !== "completed" &&
+        task.status !== "canceled"))
   );
 
   const completedTasks = tasks.filter(
@@ -292,106 +301,109 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" /> Quick Add Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  placeholder="Task title"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                  placeholder="Task description (optional)"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="deadline">Deadline</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={taskDeadline}
-                  onChange={(e) => setTaskDeadline(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={taskStatus} onValueChange={(value) => setTaskStatus(value as Status)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todo">Todo</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="to-review">To Review</SelectItem>
-                    <SelectItem value="hold">Hold</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="canceled">Canceled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="pic">Person in Charge</Label>
-                <Input
-                  id="pic"
-                  value={taskPic}
-                  onChange={(e) => setTaskPic(e.target.value)}
-                  placeholder="Who is responsible"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={taskPriority} onValueChange={(value) => setTaskPriority(value as Priority)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="location">Location</Label>
-                <Select value={taskLocation} onValueChange={(value) => setTaskLocation(value as Location)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BOSQU">BOSQU</SelectItem>
-                    <SelectItem value="RUMAH">RUMAH</SelectItem>
-                    <SelectItem value="HP GOJEK">HP GOJEK</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+        <div className="flex gap-3 items-center">
+          <ColorThemeSwitcher />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" /> Quick Add Task
               </Button>
-              <Button onClick={handleCreateTask}>
-                Create Task
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Task</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="Task title"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                    placeholder="Task description (optional)"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deadline">Deadline</Label>
+                  <Input
+                    id="deadline"
+                    type="date"
+                    value={taskDeadline}
+                    onChange={(e) => setTaskDeadline(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={taskStatus} onValueChange={(value) => setTaskStatus(value as Status)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">Todo</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="to-review">To Review</SelectItem>
+                      <SelectItem value="hold">Hold</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="canceled">Canceled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="pic">Person in Charge</Label>
+                  <Input
+                    id="pic"
+                    value={taskPic}
+                    onChange={(e) => setTaskPic(e.target.value)}
+                    placeholder="Who is responsible"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={taskPriority} onValueChange={(value) => setTaskPriority(value as Priority)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Select value={taskLocation} onValueChange={(value) => setTaskLocation(value as Location)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BOSQU">BOSQU</SelectItem>
+                      <SelectItem value="RUMAH">RUMAH</SelectItem>
+                      <SelectItem value="HP GOJEK">HP GOJEK</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateTask}>
+                  Create Task
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       
       {loading ? (
@@ -478,19 +490,19 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Task Priority</CardTitle>
+                    <CardTitle className="text-lg">Task Location</CardTitle>
                     <ChartPie className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <CardDescription>
-                    Distribution of tasks by priority
+                    Tasks grouped by location
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0 h-36">
-                  {priorityData.length > 0 ? (
+                  {locationData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={priorityData}
+                          data={locationData}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -499,8 +511,8 @@ const Dashboard = () => {
                           fill="#8884d8"
                           dataKey="value"
                         >
-                          {priorityData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          {locationData.map((entry, index) => (
+                            <Cell key={`cell-location-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip />
@@ -523,7 +535,7 @@ const Dashboard = () => {
                 <CardDescription>
                   {todayTasks.length === 0
                     ? "No tasks for today"
-                    : `${todayTasks.length} tasks to complete today`}
+                    : `${todayTasks.length} tasks to do today`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
@@ -535,6 +547,9 @@ const Dashboard = () => {
                           <div className="font-medium">{task.title}</div>
                           <div className="text-xs text-muted-foreground">
                             PIC: {task.pic} • Lokasi: {task.location}
+                          </div>
+                          <div className="text-xs italic mt-1 text-primary">
+                            You must to do!
                           </div>
                         </div>
                         <div className="flex gap-1">

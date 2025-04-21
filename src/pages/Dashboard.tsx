@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -158,6 +159,13 @@ const Dashboard = () => {
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();
   const locationData = prepareLocationData(tasks);
+
+  // Define upcomingTasks here to resolve the reference error
+  const upcomingTasks = tasks.filter((task) => 
+    isFuture(task.deadline) && 
+    task.status !== "completed" && 
+    task.status !== "canceled"
+  );
 
   const getStatusColor = (status: Status) => {
     switch (status) {

@@ -1,8 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Task, ReminderSettings, User, Status } from '@/types';
 import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
 import { format, isToday, isPast, isFuture, differenceInDays } from 'date-fns';
+import { SAMPLE_TASKS } from './default-data';
 
 const supabaseUrl = 'https://mxfiuzlatssyfsawsjkm.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Zml1emxhdHNzeWZzYXdzamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxMTU5MzksImV4cCI6MjA2MDY5MTkzOX0.kXbbaSVNmlJVGZ1Rb9CSrdDkT6EHhWSMqSSJ4GHJ4rk';

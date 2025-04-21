@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -55,12 +54,10 @@ const Dashboard = () => {
     fetchTasks();
   }, [toast]);
 
-  // Prepare chart data
   const prepareMonthlyTaskData = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentYear = new Date().getFullYear();
     
-    // Initialize data for all months
     const monthlyData = months.map((month, index) => ({
       name: month,
       total: 0,
@@ -68,12 +65,10 @@ const Dashboard = () => {
       overdue: 0
     }));
     
-    // Count tasks by month
     tasks.forEach(task => {
       const taskMonth = getMonth(task.deadline);
       const taskYear = getYear(task.deadline);
       
-      // Only include tasks from the current year
       if (taskYear === currentYear) {
         monthlyData[taskMonth].total += 1;
         
@@ -88,7 +83,6 @@ const Dashboard = () => {
     return monthlyData;
   };
   
-  // Prepare task status chart data
   const prepareStatusData = () => {
     const statusData = [
       { name: 'To Do', value: 0, color: '#94a3b8' },
@@ -107,7 +101,7 @@ const Dashboard = () => {
         statusData[1].value += 1;
       } else if (task.status === 'completed') {
         statusData[2].value += 1;
-      } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled' && task.status !== 'hold')) {
+      } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled' && task.status !== 'hold' && task.status !== 'to-review')) {
         statusData[3].value += 1;
       } else if (task.status === 'hold') {
         statusData[4].value += 1;
@@ -118,11 +112,9 @@ const Dashboard = () => {
       }
     });
     
-    // Filter out status with 0 tasks
     return statusData.filter(status => status.value > 0);
   };
   
-  // Prepare priority chart data
   const preparePriorityData = () => {
     const priorityData = [
       { name: 'High', value: 0, color: '#ef4444' },
@@ -143,7 +135,6 @@ const Dashboard = () => {
     return priorityData.filter(priority => priority.value > 0);
   };
 
-  // Get chart data
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();
   const priorityData = preparePriorityData();
@@ -239,7 +230,6 @@ const Dashboard = () => {
         pic: taskPic,
         priority: taskPriority,
         location: taskLocation,
-        user_id: "sample-user-id" // This will be replaced by the actual user ID in lib/supabase.ts
       });
       
       setTasks([...tasks, newTask]);
@@ -412,7 +402,6 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <Card>
               <CardHeader className="pb-2">
@@ -529,7 +518,6 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Tasks Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="bg-secondary/50 pb-2">

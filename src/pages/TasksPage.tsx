@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask, deleteAllTasks } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -26,7 +25,6 @@ const TasksPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'date' | 'list'>('list');
   
-  // New task form state
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDeadline, setTaskDeadline] = useState("");
@@ -43,7 +41,6 @@ const TasksPage = () => {
     setLoading(true);
     try {
       const data = await getAllTasks();
-      // If no tasks are returned, use sample tasks temporarily for testing
       setTasks(data.length > 0 ? data : SAMPLE_TASKS);
       
       if (data.length === 0) {
@@ -103,11 +100,9 @@ const TasksPage = () => {
         description: "Your new task has been created",
       });
       
-      // Reset form and close dialog
       resetForm();
       setIsDialogOpen(false);
       
-      // Refresh tasks to ensure proper sorting
       fetchTasks();
     } catch (error: any) {
       console.error("Error creating task:", error);
@@ -125,7 +120,6 @@ const TasksPage = () => {
       
       await updateTask(taskId, { status: newStatus });
       
-      // Update local state
       const updatedTasks = tasks.map(task => 
         task.id === taskId ? { ...task, status: newStatus } : task
       );
@@ -136,7 +130,6 @@ const TasksPage = () => {
         description: "Task status has been updated",
       });
       
-      // Refresh tasks to ensure proper sorting
       fetchTasks();
     } catch (error: any) {
       console.error("Error updating task:", error);
@@ -224,7 +217,7 @@ const TasksPage = () => {
     }
   };
 
-  const getTaskDueText = (deadline: Date) => {
+  const getTaskStatusMessage = (deadline: Date) => {
     if (isPast(deadline) && !isToday(deadline)) {
       return `Terlewat ${Math.abs(differenceInDays(deadline, new Date()))} hari`;
     }
@@ -427,7 +420,7 @@ const TasksPage = () => {
                       <Badge variant="outline" className={
                         task.priority === 'high' ? 'bg-red-100 text-red-800' :
                         task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        task.priority === 'green' ? 'bg-green-100 text-green-800' : ''
+                        task.priority === 'low' ? 'bg-green-100 text-green-800' : ''
                       }>
                         {task.priority} Priority
                       </Badge>
@@ -439,7 +432,7 @@ const TasksPage = () => {
                         {format(task.deadline, "MMM d, yyyy")}
                         {" "}
                         <span className="text-xs italic">
-                          ({getTaskDueText(task.deadline)})
+                          ({getTaskStatusMessage(task.deadline)})
                         </span>
                       </span>
                     </div>

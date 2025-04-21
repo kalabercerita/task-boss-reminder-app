@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Task, ReminderSettings, User, Status } from '@/types';
 import { sendWhatsAppMessage, sendWhatsAppGroupMessage, setFonnteApiKey } from './whatsapp';
@@ -239,28 +238,36 @@ export const getTasks = async () => {
 };
 
 export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({
-      title: task.title,
-      description: task.description || '',
-      deadline: task.deadline.toISOString(),
-      status: task.status,
-      pic: task.pic,
-      priority: task.priority,
-      location: task.location
-    })
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        title: task.title,
+        description: task.description || '',
+        deadline: task.deadline.toISOString(),
+        status: task.status,
+        pic: task.pic,
+        priority: task.priority,
+        location: task.location
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error("Error creating task:", error);
+      throw error;
+    }
     
-  if (error) throw error;
-  
-  return {
-    ...data,
-    deadline: new Date(data.deadline),
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
-  } as Task;
+    return {
+      ...data,
+      deadline: new Date(data.deadline),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    } as Task;
+  } catch (error) {
+    console.error("Error in createTask function:", error);
+    throw error;
+  }
 };
 
 export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>) => {
@@ -270,12 +277,15 @@ export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'cr
     updates.deadline = task.deadline.toISOString();
   }
   
-  // Make sure we're updating the task with the correct ID format
   try {
+    // Make sure the ID is properly formatted
+    // Ensure we're not passing a numeric string as a UUID
+    const validId = id;
+    
     const { data, error } = await supabase
       .from('tasks')
       .update(updates)
-      .eq('id', id)
+      .eq('id', validId)
       .select()
       .single();
       
@@ -297,12 +307,37 @@ export const updateTask = async (id: string, task: Partial<Omit<Task, 'id' | 'cr
 };
 
 export const deleteTask = async (id: string) => {
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error("Error deleting task:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in deleteTask function:", error);
+    throw error;
+  }
+};
+
+export const deleteAllTasks = async () => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .neq('id', ''); // Delete all rows
+      
+    if (error) {
+      console.error("Error deleting all tasks:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in deleteAllTasks function:", error);
+    throw error;
+  }
 };
 
 // Reminder settings

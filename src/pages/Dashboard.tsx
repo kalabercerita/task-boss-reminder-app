@@ -4,18 +4,20 @@ import { Task, Status, Priority, Location } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format, isToday, isPast, isFuture, differenceInDays } from "date-fns";
+import { format, isToday, isPast, isFuture, differenceInDays, startOfMonth, endOfMonth, parseISO, getMonth, getYear } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SAMPLE_TASKS } from "@/lib/default-data";
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar, Clock, X, Check, 
-  AlertCircle, List
+  AlertCircle, List, ChartBar, ChartPie
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -51,6 +53,99 @@ const Dashboard = () => {
 
     fetchTasks();
   }, [toast]);
+
+  // Prepare chart data
+  const prepareMonthlyTaskData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    
+    // Initialize data for all months
+    const monthlyData = months.map((month, index) => ({
+      name: month,
+      total: 0,
+      completed: 0,
+      overdue: 0
+    }));
+    
+    // Count tasks by month
+    tasks.forEach(task => {
+      const taskMonth = getMonth(task.deadline);
+      const taskYear = getYear(task.deadline);
+      
+      // Only include tasks from the current year
+      if (taskYear === currentYear) {
+        monthlyData[taskMonth].total += 1;
+        
+        if (task.status === 'completed') {
+          monthlyData[taskMonth].completed += 1;
+        } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled')) {
+          monthlyData[taskMonth].overdue += 1;
+        }
+      }
+    });
+    
+    return monthlyData;
+  };
+  
+  // Prepare task status chart data
+  const prepareStatusData = () => {
+    const statusData = [
+      { name: 'To Do', value: 0, color: '#94a3b8' },
+      { name: 'In Progress', value: 0, color: '#3b82f6' },
+      { name: 'Completed', value: 0, color: '#22c55e' },
+      { name: 'Overdue', value: 0, color: '#ef4444' },
+      { name: 'Hold', value: 0, color: '#eab308' },
+      { name: 'To Review', value: 0, color: '#8b5cf6' },
+      { name: 'Canceled', value: 0, color: '#6b7280' }
+    ];
+    
+    tasks.forEach(task => {
+      if (task.status === 'todo') {
+        statusData[0].value += 1;
+      } else if (task.status === 'in-progress') {
+        statusData[1].value += 1;
+      } else if (task.status === 'completed') {
+        statusData[2].value += 1;
+      } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled')) {
+        statusData[3].value += 1;
+      } else if (task.status === 'hold') {
+        statusData[4].value += 1;
+      } else if (task.status === 'to-review') {
+        statusData[5].value += 1;
+      } else if (task.status === 'canceled') {
+        statusData[6].value += 1;
+      }
+    });
+    
+    // Filter out status with 0 tasks
+    return statusData.filter(status => status.value > 0);
+  };
+  
+  // Prepare priority chart data
+  const preparePriorityData = () => {
+    const priorityData = [
+      { name: 'High', value: 0, color: '#ef4444' },
+      { name: 'Medium', value: 0, color: '#eab308' },
+      { name: 'Low', value: 0, color: '#22c55e' }
+    ];
+    
+    tasks.forEach(task => {
+      if (task.priority === 'high') {
+        priorityData[0].value += 1;
+      } else if (task.priority === 'medium') {
+        priorityData[1].value += 1;
+      } else if (task.priority === 'low') {
+        priorityData[2].value += 1;
+      }
+    });
+    
+    return priorityData.filter(priority => priority.value > 0);
+  };
+
+  // Get chart data
+  const monthlyTaskData = prepareMonthlyTaskData();
+  const statusData = prepareStatusData();
+  const priorityData = preparePriorityData();
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -312,169 +407,299 @@ const Dashboard = () => {
           <p>Loading tasks...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="bg-secondary/50 pb-2">
-              <CardTitle className="text-lg">Today's Tasks</CardTitle>
-              <CardDescription>
-                {todayTasks.length === 0
-                  ? "No tasks for today"
-                  : `${todayTasks.length} tasks to complete today`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {todayTasks.length > 0 ? (
-                  todayTasks.slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          PIC: {task.pic} • Lokasi: {task.location}
+        <>
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Monthly Task Overview</CardTitle>
+                  <ChartBar className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <CardDescription>
+                  Task distribution by month
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0 h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={monthlyTaskData}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 0,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="total" name="Total Tasks" fill="#9333ea" />
+                    <Bar dataKey="completed" name="Completed" fill="#22c55e" />
+                    <Bar dataKey="overdue" name="Overdue" fill="#ef4444" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Task Status</CardTitle>
+                    <ChartPie className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <CardDescription>
+                    Distribution of tasks by status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 h-36">
+                  {statusData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={50}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {statusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      No task data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Task Priority</CardTitle>
+                    <ChartPie className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <CardDescription>
+                    Distribution of tasks by priority
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 h-36">
+                  {priorityData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={priorityData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={50}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {priorityData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      No task data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
+          {/* Tasks Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="bg-secondary/50 pb-2">
+                <CardTitle className="text-lg">Today's Tasks</CardTitle>
+                <CardDescription>
+                  {todayTasks.length === 0
+                    ? "No tasks for today"
+                    : `${todayTasks.length} tasks to complete today`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {todayTasks.length > 0 ? (
+                    todayTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
+                        <div>
+                          <div className="font-medium">{task.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            PIC: {task.pic} • Lokasi: {task.location}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className={
+                            task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                            task.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }>
+                            {task.status}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No tasks scheduled for today
+                    </div>
+                  )}
+                  {todayTasks.length > 5 && (
+                    <div className="text-center text-sm text-primary">
+                      +{todayTasks.length - 5} more tasks
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="bg-secondary/50 pb-2">
+                <CardTitle className="text-lg">Upcoming Tasks</CardTitle>
+                <CardDescription>
+                  {upcomingTasks.length === 0
+                    ? "No upcoming tasks"
+                    : `${upcomingTasks.length} tasks coming up`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {upcomingTasks.length > 0 ? (
+                    upcomingTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
+                        <div>
+                          <div className="font-medium">{task.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(task.deadline, "MMM d, yyyy")} • {task.pic}
+                            <div className="text-xs italic mt-1">
+                              {getTaskDueText(task.deadline)}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={
+                          task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          task.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }>
                           {task.status}
                         </Badge>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No upcoming tasks
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No tasks scheduled for today
-                  </div>
-                )}
-                {todayTasks.length > 5 && (
-                  <div className="text-center text-sm text-primary">
-                    +{todayTasks.length - 5} more tasks
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-secondary/50 pb-2">
-              <CardTitle className="text-lg">Upcoming Tasks</CardTitle>
-              <CardDescription>
-                {upcomingTasks.length === 0
-                  ? "No upcoming tasks"
-                  : `${upcomingTasks.length} tasks coming up`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {upcomingTasks.length > 0 ? (
-                  upcomingTasks.slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(task.deadline, "MMM d, yyyy")} • {task.pic}
-                          <div className="text-xs italic mt-1">
-                            {getTaskDueText(task.deadline)}
+                  )}
+                  {upcomingTasks.length > 5 && (
+                    <div className="text-center text-sm text-primary">
+                      +{upcomingTasks.length - 5} more tasks
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="bg-secondary/50 pb-2">
+                <CardTitle className="text-lg">Overdue Tasks</CardTitle>
+                <CardDescription>
+                  {overdueTasks.length === 0
+                    ? "No overdue tasks"
+                    : `${overdueTasks.length} tasks overdue`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {overdueTasks.length > 0 ? (
+                    overdueTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border border-destructive/30">
+                        <div>
+                          <div className="font-medium">{task.title}</div>
+                          <div className="text-xs text-destructive">
+                            Due {format(task.deadline, "MMM d, yyyy")} • {task.pic}
+                            <div className="text-xs italic mt-1">
+                              {getTaskDueText(task.deadline)}
+                            </div>
                           </div>
                         </div>
+                        <Badge variant="outline" className="bg-red-100 text-red-800">
+                          {task.status}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
-                        {task.status}
-                      </Badge>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No overdue tasks
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No upcoming tasks
-                  </div>
-                )}
-                {upcomingTasks.length > 5 && (
-                  <div className="text-center text-sm text-primary">
-                    +{upcomingTasks.length - 5} more tasks
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-secondary/50 pb-2">
-              <CardTitle className="text-lg">Overdue Tasks</CardTitle>
-              <CardDescription>
-                {overdueTasks.length === 0
-                  ? "No overdue tasks"
-                  : `${overdueTasks.length} tasks overdue`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {overdueTasks.length > 0 ? (
-                  overdueTasks.slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border border-destructive/30">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-xs text-destructive">
-                          Due {format(task.deadline, "MMM d, yyyy")} • {task.pic}
-                          <div className="text-xs italic mt-1">
-                            {getTaskDueText(task.deadline)}
+                  )}
+                  {overdueTasks.length > 5 && (
+                    <div className="text-center text-sm text-primary">
+                      +{overdueTasks.length - 5} more tasks
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="bg-secondary/50 pb-2">
+                <CardTitle className="text-lg">Completed Tasks</CardTitle>
+                <CardDescription>
+                  {completedTasks.length === 0
+                    ? "No completed tasks"
+                    : `${completedTasks.length} tasks completed`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {completedTasks.length > 0 ? (
+                    completedTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border opacity-70">
+                        <div>
+                          <div className="font-medium line-through">{task.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {task.pic} • {task.location}
                           </div>
                         </div>
+                        <Badge variant="outline">Completed</Badge>
                       </div>
-                      <Badge variant="outline" className={getStatusBadgeColor(task.status)}>
-                        {task.status}
-                      </Badge>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No completed tasks
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No overdue tasks
-                  </div>
-                )}
-                {overdueTasks.length > 5 && (
-                  <div className="text-center text-sm text-primary">
-                    +{overdueTasks.length - 5} more tasks
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-secondary/50 pb-2">
-              <CardTitle className="text-lg">Completed Tasks</CardTitle>
-              <CardDescription>
-                {completedTasks.length === 0
-                  ? "No completed tasks"
-                  : `${completedTasks.length} tasks completed`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {completedTasks.length > 0 ? (
-                  completedTasks.slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border opacity-70">
-                      <div>
-                        <div className="font-medium line-through">{task.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {task.pic} • {task.location}
-                        </div>
-                      </div>
-                      <Badge variant="outline">Completed</Badge>
+                  )}
+                  {completedTasks.length > 5 && (
+                    <div className="text-center text-sm text-primary">
+                      +{completedTasks.length - 5} more tasks
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No completed tasks
-                  </div>
-                )}
-                {completedTasks.length > 5 && (
-                  <div className="text-center text-sm text-primary">
-                    +{completedTasks.length - 5} more tasks
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   );

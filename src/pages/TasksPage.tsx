@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { getAllTasks, createTask, updateTask, deleteTask } from "@/lib/supabase";
+import { getAllTasks, createTask, updateTask, deleteTask, deleteAllTasks } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,13 @@ import { format, addDays, subDays, differenceInDays, isToday, isPast } from "dat
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar, Clock, X, Check, 
-  AlertCircle, List
+  AlertCircle, List, Trash
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SAMPLE_TASKS } from "@/lib/default-data";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const TasksPage = () => {
   const { toast } = useToast();
@@ -109,9 +110,10 @@ const TasksPage = () => {
       // Refresh tasks to ensure proper sorting
       fetchTasks();
     } catch (error: any) {
+      console.error("Error creating task:", error);
       toast({
         title: "Error Creating Task",
-        description: error.message,
+        description: error.message || "Failed to create task",
         variant: "destructive",
       });
     }
@@ -119,6 +121,8 @@ const TasksPage = () => {
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: Status) => {
     try {
+      console.log("Updating task ID:", taskId, "to status:", newStatus);
+      
       await updateTask(taskId, { status: newStatus });
       
       // Update local state
@@ -139,6 +143,24 @@ const TasksPage = () => {
       toast({
         title: "Error Updating Task",
         description: error.message || "Failed to update task status",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleDeleteAllTasks = async () => {
+    try {
+      await deleteAllTasks();
+      setTasks([]);
+      toast({
+        title: "Tasks Deleted",
+        description: "All tasks have been deleted",
+      });
+    } catch (error: any) {
+      console.error("Error deleting all tasks:", error);
+      toast({
+        title: "Error Deleting Tasks",
+        description: error.message || "Failed to delete all tasks",
         variant: "destructive",
       });
     }
@@ -238,6 +260,29 @@ const TasksPage = () => {
               List View
             </Button>
           </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash className="h-4 w-4 mr-2" /> Delete All
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will delete all tasks. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAllTasks}>
+                  Delete All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
@@ -292,7 +337,15 @@ const TasksPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Swapped Person in Charge (PIC) with Location */}
+                <div className="grid gap-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={taskLocation}
+                    onChange={(e) => setTaskLocation(e.target.value as Location)}
+                    placeholder="Where the task will be performed"
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="pic">Person in Charge</Label>
                   <Input
@@ -312,19 +365,6 @@ const TasksPage = () => {
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Select value={taskLocation} onValueChange={(value) => setTaskLocation(value as Location)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BOSQU">BOSQU</SelectItem>
-                      <SelectItem value="RUMAH">RUMAH</SelectItem>
-                      <SelectItem value="HP GOJEK">HP GOJEK</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

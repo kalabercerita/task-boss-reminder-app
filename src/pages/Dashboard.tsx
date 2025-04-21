@@ -279,6 +279,8 @@ const Dashboard = () => {
   };
 
   const todayTasks = tasks.filter((task) => isToday(task.deadline));
+  
+  // Fix the type error by using type guards
   const overdueTasks = tasks.filter(
     (task) => 
       !isToday(task.deadline) &&

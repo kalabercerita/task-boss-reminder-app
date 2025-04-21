@@ -8,14 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { format, addDays, subDays, differenceInDays, isToday, isPast } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Plus, ChevronLeft, ChevronRight, Calendar, Clock, X, Check, 
-  AlertCircle, List, Trash
+  Check, Clock, X, AlertCircle, List, Trash, Calendar
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SAMPLE_TASKS } from "@/lib/default-data";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+const statusList: Status[] = [
+  "todo", "in-progress", "to-review", "hold", "completed", "canceled"
+];
 
 const TasksPage = () => {
   const { toast } = useToast();
@@ -116,23 +119,17 @@ const TasksPage = () => {
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: Status) => {
     try {
-      console.log("Updating task ID:", taskId, "to status:", newStatus);
-      
       await updateTask(taskId, { status: newStatus });
-      
       const updatedTasks = tasks.map(task => 
         task.id === taskId ? { ...task, status: newStatus } : task
       );
       setTasks(updatedTasks);
-      
       toast({
         title: "Task Updated",
         description: "Task status has been updated",
       });
-      
       fetchTasks();
     } catch (error: any) {
-      console.error("Error updating task:", error);
       toast({
         title: "Error Updating Task",
         description: error.message || "Failed to update task status",
@@ -150,7 +147,6 @@ const TasksPage = () => {
         description: "All tasks have been deleted",
       });
     } catch (error: any) {
-      console.error("Error deleting all tasks:", error);
       toast({
         title: "Error Deleting Tasks",
         description: error.message || "Failed to delete all tasks",
@@ -229,10 +225,10 @@ const TasksPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Tasks</h1>
-        <div className="flex space-x-4">
+    <div className="container mx-auto py-6 px-2 sm:px-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Tasks</h1>
+        <div className="flex gap-2 sm:gap-4">
           <div className="flex border rounded-md">
             <Button 
               variant={viewMode === 'date' ? "default" : "ghost"}
@@ -240,8 +236,8 @@ const TasksPage = () => {
               onClick={() => setViewMode('date')}
               size="sm"
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Date View
+              <Calendar className="h-4 w-4 mr-1" />
+              Date
             </Button>
             <Button 
               variant={viewMode === 'list' ? "default" : "ghost"}
@@ -249,15 +245,15 @@ const TasksPage = () => {
               onClick={() => setViewMode('list')}
               size="sm"
             >
-              <List className="h-4 w-4 mr-2" />
-              List View
+              <List className="h-4 w-4 mr-1" />
+              List
             </Button>
           </div>
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
-                <Trash className="h-4 w-4 mr-2" /> Delete All
+                <Trash className="h-4 w-4 mr-1" /> Delete All
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -279,7 +275,7 @@ const TasksPage = () => {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
-                <Plus className="mr-2 h-4 w-4" /> Add Task
+                <Check className="mr-2 h-4 w-4" /> Add Task
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -321,12 +317,11 @@ const TasksPage = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todo">Todo</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="to-review">To Review</SelectItem>
-                      <SelectItem value="hold">Hold</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="canceled">Canceled</SelectItem>
+                      {statusList.map((status) => (
+                        <SelectItem key={status} value={status} className="text-xs">
+                          {status}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -376,15 +371,17 @@ const TasksPage = () => {
       </div>
 
       {viewMode === 'date' && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <Button variant="outline" size="icon" onClick={() => navigateDate('prev')}>
-            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Previous</span>
+            <span>&lt;</span>
           </Button>
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-base sm:text-xl font-semibold">
             {format(selectedDate, "MMMM d, yyyy")}
           </h2>
           <Button variant="outline" size="icon" onClick={() => navigateDate('next')}>
-            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Next</span>
+            <span>&gt;</span>
           </Button>
         </div>
       )}
@@ -392,75 +389,69 @@ const TasksPage = () => {
       {loading ? (
         <div className="text-center py-6">Loading tasks...</div>
       ) : (
-        <div className="space-y-2">
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task) => (
-              <div 
-                key={task.id} 
-                className={`p-4 border rounded-md ${task.status === 'completed' ? 'opacity-70' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(task.status)}
-                      <span className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
-                        {task.title}
-                      </span>
-                    </div>
-                    
-                    {task.description && (
-                      <div className={`text-sm text-muted-foreground ${task.status === 'completed' ? 'line-through' : ''}`}>
-                        {task.description}
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge variant="outline">PIC: {task.pic}</Badge>
-                      <Badge variant="outline">Lokasi: {task.location} ({getLocationDescription(task.location)})</Badge>
-                      <Badge variant="outline" className={
-                        task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        task.priority === 'low' ? 'bg-green-100 text-green-800' : ''
-                      }>
-                        {task.priority} Priority
-                      </Badge>
-                    </div>
-                    
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        {format(task.deadline, "MMM d, yyyy")}
-                        {" "}
-                        <span className="text-xs italic">
-                          ({getTaskStatusMessage(task.deadline)})
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-2 ml-4">
-                    <Badge className={getStatusColor(task.status)}>
-                      {task.status}
-                    </Badge>
-                    
-                    {task.status !== 'completed' && task.status !== 'canceled' && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
-                      >
-                        <Check className="h-3 w-3 mr-1" /> Mark Complete
-                      </Button>
-                    )}
-                  </div>
+        <div className="flex flex-col gap-1">
+        {filteredTasks.length > 0 ? (
+          filteredTasks.map((task) => (
+            <div 
+              key={task.id} 
+              className={`flex items-center border-b last:border-b-0 px-2 py-2 gap-2 ${task.status === "completed" ? "opacity-70" : ""}`}
+              style={{fontSize: '0.95rem'}}
+            >
+              <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                {getStatusIcon(task.status)}
+                <Badge className={`px-2 py-0.5 text-xs ${getStatusColor(task.status)}`}>
+                  {task.status}
+                </Badge>
+              </div>
+              
+              <div className="flex-1 min-w-0 truncate">
+                <div className="flex items-center min-w-0 gap-2">
+                  <span className={`font-medium truncate ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+                    {task.title}
+                  </span>
+                  {task.priority === 'high' && <span className="text-xs text-red-500 border border-red-300 bg-red-50 rounded px-1 ml-1">HIGH</span>}
+                  {task.priority === 'medium' && <span className="text-xs text-yellow-700 border border-yellow-200 bg-yellow-50 rounded px-1 ml-1">MED</span>}
+                  {task.priority === 'low' && <span className="text-xs text-green-700 border border-green-200 bg-green-50 rounded px-1 ml-1">LOW</span>}
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-muted-foreground">
+                  <span>PIC: {task.pic}</span>
+                  <span>Lokasi: {getLocationDescription(task.location)}</span>
+                  <span>Deadline: {format(task.deadline, "MMM d, yyyy")} (<span className="italic">{getTaskStatusMessage(task.deadline)}</span>)</span>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-center text-muted-foreground py-6">
-              {viewMode === 'date' ? 'No tasks for this day' : 'No tasks found'}
+
+              <div className="flex flex-col items-end gap-1 min-w-[110px]">
+                <Select value={task.status} onValueChange={(value) => handleUpdateTaskStatus(task.id, value as Status)}>
+                  <SelectTrigger className="h-7 w-[90px] text-xs border rounded bg-white/80">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusList.map((status) => (
+                      <SelectItem key={status} value={status} className="text-xs">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {task.status !== 'completed' && task.status !== 'canceled' && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+                  >
+                    <Check className="h-3 w-3 mr-1" /> Complete
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
+          ))
+        ) : (
+          <div className="text-center text-muted-foreground py-4">
+            {viewMode === 'date' ? 'No tasks for this day' : 'No tasks found'}
+          </div>
+        )}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAllTasks, createTask } from "@/lib/supabase";
+import { getAllTasks, createTask, updateTask } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -294,6 +294,27 @@ const Dashboard = () => {
     }
   };
 
+  const handleStatusChange = async (taskId: string, newStatus: Status) => {
+    try {
+      await updateTask(taskId, { status: newStatus });
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      );
+      setTasks(updatedTasks);
+      toast({
+        title: "Status Updated",
+        description: "Task status has been updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -539,26 +560,26 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   {todayTasks.length > 0 ? (
                     todayTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
-                        <div>
-                          <div className="font-medium">{task.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            PIC: {task.pic} • Lokasi: {task.location}
-                          </div>
-                          <div className="text-xs italic mt-1 text-primary">
-                            You must to do!
+                      <div key={task.id} className="flex items-center justify-between bg-card p-2 rounded-md border">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{task.title}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {task.pic} • {task.location}
                           </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Badge variant="outline" className={
-                            task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                            task.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }>
-                            {task.status}
-                          </Badge>
-                        </div>
+                        <Select
+                          value={task.status}
+                          onValueChange={(value: Status) => handleStatusChange(task.id, value)}
+                        >
+                          <SelectTrigger className="h-8 w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todo">Todo</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     ))
                   ) : (

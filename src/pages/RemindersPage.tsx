@@ -5,7 +5,7 @@ import { DEFAULT_REMINDER_SETTINGS } from '@/lib/default-data';
 import { ReminderSettings } from '@/types';
 import { updateReminderSettings, getReminderSettings } from '@/lib/supabase';
 import { useToast } from "@/hooks/use-toast";
-import { setFonnteApiKey, sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import WhatsAppGroupsManager from '@/components/WhatsAppGroupsManager';
 import ContactsManager from '@/components/ContactsManager';
 import { 

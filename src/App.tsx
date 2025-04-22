@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -42,16 +43,18 @@ const App = () => {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <Router>
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/reminders" element={<RemindersPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/task-report" element={<TaskReportPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+          <Route path="/" element={<Layout>
+            <Routes>
+              <Route index element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/reminders" element={<RemindersPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/task-report" element={<TaskReportPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>} />
           <Route path="/login" element={<Login />} />
         </Routes>
       </Router>

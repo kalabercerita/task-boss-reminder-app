@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_REMINDER_SETTINGS } from '@/lib/default-data';
@@ -92,11 +93,18 @@ const RemindersPage = () => {
         const result = await updateReminderSettings(user.id, updatedSettings);
         if (result) {
           setReminderSettings(result);
+          toast({
+            title: "Success",
+            description: "Reminder settings updated successfully",
+          });
+        } else {
+          // Handle case where result is null
+          toast({
+            title: "Warning",
+            description: "Settings may not have been saved properly",
+            variant: "destructive",
+          });
         }
-        toast({
-          title: "Success",
-          description: "Reminder settings updated successfully",
-        });
       } catch (error) {
         console.error("Failed to update reminder settings:", error);
         toast({

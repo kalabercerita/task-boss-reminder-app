@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateUserProfile, updateUserPreferences } from "@/lib/supabase";
@@ -47,6 +48,16 @@ const SettingsPage = () => {
         const result = await updateUserPreferences(user.id, userPreferences);
         if (result) {
           setUserPreferences(result);
+          toast({
+            title: "Success",
+            description: "User preferences updated successfully",
+          });
+        } else {
+          toast({
+            title: "Warning",
+            description: "Preferences may not have been saved properly",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Failed to update user preferences:", error);

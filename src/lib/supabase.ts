@@ -110,7 +110,7 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedA
   };
 };
 
-export const updateTask = async (taskId: string, updates: Partial<Task>) => {
+export const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task> => {
   // Convert our Task type updates to the database format
   const dbUpdates: any = {};
   if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -218,30 +218,58 @@ export const getReminderSettings = async (userId: string): Promise<ReminderSetti
     return null;
   }
 
-  return data?.settings as ReminderSettings || null;
+  // Fix: Properly typecast the JSON data to ReminderSettings
+  if (data?.settings) {
+    // Ensure this is a valid ReminderSettings object before returning
+    const settings = data.settings as any;
+    
+    // Check if it has the required properties of ReminderSettings
+    if (
+      settings.dailyReminders &&
+      settings.advanceReminders &&
+      settings.whatsapp !== undefined &&
+      settings.nameInReminder !== undefined
+    ) {
+      return settings as ReminderSettings;
+    }
+  }
+  
+  return null;
 };
 
 export const updateReminderSettings = async (userId: string, settings: ReminderSettings): Promise<ReminderSettings | null> => {
-  // Convert our ReminderSettings type to JSON for storage
-  const { error } = await supabase
-    .from('reminder_settings')
-    .upsert({ user_id: userId, settings: settings as any })
-    .select();
+  try {
+    // Convert our ReminderSettings type to JSON for storage
+    const { error } = await supabase
+      .from('reminder_settings')
+      .upsert({ 
+        user_id: userId, 
+        settings: settings as any // Cast to any to satisfy the JSON type
+      });
 
-  if (error) {
-    console.error("Error updating reminder settings:", error);
-    throw error;
+    if (error) {
+      console.error("Error updating reminder settings:", error);
+      throw error;
+    }
+    
+    return settings;
+  } catch (error) {
+    console.error("Exception updating reminder settings:", error);
+    return null;
   }
-  
-  return settings;
 };
 
 export const updateUserPreferences = async (userId: string, preferences: UserPreferences): Promise<UserPreferences | null> => {
-  // Since preferences is not a direct column in the users table,
-  // we need to structure this differently or create a new table
-  // For now, return the preferences as is
-  console.log("Would update preferences for user:", userId, preferences);
-  return preferences;
+  try {
+    // Since preferences is not a direct column in the users table,
+    // we need to structure this differently or create a new table
+    // For now, return the preferences as is
+    console.log("Would update preferences for user:", userId, preferences);
+    return preferences;
+  } catch (error) {
+    console.error("Error updating user preferences:", error);
+    return null;
+  }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {

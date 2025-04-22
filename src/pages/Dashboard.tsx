@@ -39,6 +39,75 @@ const prepareLocationData = (tasks: Task[]) => {
   }));
 };
 
+const prepareMonthlyTaskData = () => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentYear = new Date().getFullYear();
+  
+  const monthlyData = months.map((month, index) => ({
+    name: month,
+    total: 0,
+    completed: 0,
+    overdue: 0
+  }));
+  
+  tasks.forEach(task => {
+    const taskMonth = getMonth(task.deadline);
+    const taskYear = getYear(task.deadline);
+    
+    if (taskYear === currentYear) {
+      monthlyData[taskMonth].total += 1;
+      
+      if (task.status === 'completed') {
+        monthlyData[taskMonth].completed += 1;
+      } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                task.status !== 'completed' && 
+                task.status !== 'canceled' && 
+                task.status !== 'hold' && 
+                task.status !== 'to-review')) {
+        monthlyData[taskMonth].overdue += 1;
+      }
+    }
+  });
+  
+  return monthlyData;
+};
+
+const prepareStatusData = () => {
+  const statusData = [
+    { name: 'To Do', value: 0, color: '#94a3b8' },
+    { name: 'In Progress', value: 0, color: '#3b82f6' },
+    { name: 'Completed', value: 0, color: '#22c55e' },
+    { name: 'Overdue', value: 0, color: '#ef4444' },
+    { name: 'Hold', value: 0, color: '#eab308' },
+    { name: 'To Review', value: 0, color: '#8b5cf6' },
+    { name: 'Canceled', value: 0, color: '#6b7280' }
+  ];
+  
+  tasks.forEach(task => {
+    if (task.status === 'todo') {
+      statusData[0].value += 1;
+    } else if (task.status === 'in-progress') {
+      statusData[1].value += 1;
+    } else if (task.status === 'completed') {
+      statusData[2].value += 1;
+    } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                task.status !== 'completed' && 
+                task.status !== 'canceled' && 
+                task.status !== 'hold' && 
+                task.status !== 'to-review')) {
+      statusData[3].value += 1;
+    } else if (task.status === 'hold') {
+      statusData[4].value += 1;
+    } else if (task.status === 'to-review') {
+      statusData[5].value += 1;
+    } else if (task.status === 'canceled') {
+      statusData[6].value += 1;
+    }
+  });
+  
+  return statusData.filter(status => status.value > 0);
+};
+
 const Dashboard = () => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -94,75 +163,6 @@ const Dashboard = () => {
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
   );
-
-  const prepareMonthlyTaskData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = new Date().getFullYear();
-    
-    const monthlyData = months.map((month, index) => ({
-      name: month,
-      total: 0,
-      completed: 0,
-      overdue: 0
-    }));
-    
-    tasks.forEach(task => {
-      const taskMonth = getMonth(task.deadline);
-      const taskYear = getYear(task.deadline);
-      
-      if (taskYear === currentYear) {
-        monthlyData[taskMonth].total += 1;
-        
-        if (task.status === 'completed') {
-          monthlyData[taskMonth].completed += 1;
-        } else if (task.status === 'overdue' || (isPast(task.deadline) && 
-                  task.status !== 'completed' && 
-                  task.status !== 'canceled' && 
-                  task.status !== 'hold' && 
-                  task.status !== 'to-review')) {
-          monthlyData[taskMonth].overdue += 1;
-        }
-      }
-    });
-    
-    return monthlyData;
-  };
-
-  const prepareStatusData = () => {
-    const statusData = [
-      { name: 'To Do', value: 0, color: '#94a3b8' },
-      { name: 'In Progress', value: 0, color: '#3b82f6' },
-      { name: 'Completed', value: 0, color: '#22c55e' },
-      { name: 'Overdue', value: 0, color: '#ef4444' },
-      { name: 'Hold', value: 0, color: '#eab308' },
-      { name: 'To Review', value: 0, color: '#8b5cf6' },
-      { name: 'Canceled', value: 0, color: '#6b7280' }
-    ];
-    
-    tasks.forEach(task => {
-      if (task.status === 'todo') {
-        statusData[0].value += 1;
-      } else if (task.status === 'in-progress') {
-        statusData[1].value += 1;
-      } else if (task.status === 'completed') {
-        statusData[2].value += 1;
-      } else if (task.status === 'overdue' || (isPast(task.deadline) && 
-                  task.status !== 'completed' && 
-                  task.status !== 'canceled' && 
-                  task.status !== 'hold' && 
-                  task.status !== 'to-review')) {
-        statusData[3].value += 1;
-      } else if (task.status === 'hold') {
-        statusData[4].value += 1;
-      } else if (task.status === 'to-review') {
-        statusData[5].value += 1;
-      } else if (task.status === 'canceled') {
-        statusData[6].value += 1;
-      }
-    });
-    
-    return statusData.filter(status => status.value > 0);
-  };
 
   const monthlyTaskData = prepareMonthlyTaskData();
   const statusData = prepareStatusData();

@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser({
             id: userData.id,
             email: userData.email,
-            name: userData.name || currentUser.user_metadata?.name || 'User',
+            name: userData.name || currentUser.name || 'User',
             reminderSettings
           });
         }

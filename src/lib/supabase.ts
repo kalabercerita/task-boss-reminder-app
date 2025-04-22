@@ -1,5 +1,38 @@
-import { Task, User } from "@/types";
-import { supabase } from "./supabaseClient";
+
+import { Task, User, ReminderSettings, UserPreferences } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+
+export { supabase };
+
+export const signIn = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const signUp = async (email: string, password: string, name: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
+      },
+    },
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
 
 export const getAllTasks = async (): Promise<Task[]> => {
   const { data, error } = await supabase
@@ -13,6 +46,10 @@ export const getAllTasks = async (): Promise<Task[]> => {
   }
 
   return data || [];
+};
+
+export const getTasks = async (): Promise<Task[]> => {
+  return getAllTasks();
 };
 
 export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>): Promise<Task> => {
@@ -59,6 +96,23 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   }
 };
 
+export const deleteAllTasks = async (): Promise<void> => {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error("Error deleting all tasks:", error);
+    throw error;
+  }
+};
+
 export const getUserProfile = async (userId: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
@@ -88,6 +142,45 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>):
   }
 
   return data || null;
+};
+
+export const getReminderSettings = async (userId: string): Promise<ReminderSettings | null> => {
+  const { data, error } = await supabase
+    .from('reminder_settings')
+    .select('settings')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching reminder settings:", error);
+    return null;
+  }
+
+  return data?.settings || null;
+};
+
+export const updateReminderSettings = async (userId: string, settings: ReminderSettings): Promise<void> => {
+  const { error } = await supabase
+    .from('reminder_settings')
+    .upsert({ user_id: userId, settings })
+    .select();
+
+  if (error) {
+    console.error("Error updating reminder settings:", error);
+    throw error;
+  }
+};
+
+export const updateUserPreferences = async (userId: string, preferences: UserPreferences): Promise<void> => {
+  const { error } = await supabase
+    .from('users')
+    .update({ preferences })
+    .eq('id', userId);
+
+  if (error) {
+    console.error("Error updating user preferences:", error);
+    throw error;
+  }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {

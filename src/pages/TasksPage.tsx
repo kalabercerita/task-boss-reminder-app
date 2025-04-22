@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { getAllTasks, createTask, updateTask, deleteTask, deleteAllTasks } from "@/lib/supabase";
 import { Task, Status, Priority, Location } from "@/types";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format, addDays, subDays, differenceInDays, isToday, isPast } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Check, Clock, X, AlertCircle, List, Trash, Calendar
+  Check, Clock, X, AlertCircle, List, Trash, Calendar, Trash2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +28,8 @@ const TasksPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'date' | 'list'>('list');
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
@@ -138,6 +141,27 @@ const TasksPage = () => {
     }
   };
   
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      setTasks(updatedTasks);
+      toast({
+        title: "Task Deleted",
+        description: "The task has been deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error Deleting Task",
+        description: error.message || "Failed to delete task",
+        variant: "destructive",
+      });
+    } finally {
+      setTaskToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+  
   const handleDeleteAllTasks = async () => {
     try {
       await deleteAllTasks();
@@ -224,36 +248,41 @@ const TasksPage = () => {
     return `${days} hari lagi`;
   };
 
+  const openDeleteDialog = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setIsDeleteDialogOpen(true);
+  };
+
   return (
-    <div className="container mx-auto py-6 px-2 sm:px-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto py-4 sm:py-6 px-2 sm:px-4">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Tasks</h1>
-        <div className="flex gap-2 sm:gap-4">
+        <div className="flex gap-2 items-center flex-wrap">
           <div className="flex border rounded-md">
             <Button 
               variant={viewMode === 'date' ? "default" : "ghost"}
-              className="rounded-r-none"
+              className="rounded-r-none h-8 text-xs sm:text-sm px-2 sm:px-3"
               onClick={() => setViewMode('date')}
               size="sm"
             >
-              <Calendar className="h-4 w-4 mr-1" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Date
             </Button>
             <Button 
               variant={viewMode === 'list' ? "default" : "ghost"}
-              className="rounded-l-none"
+              className="rounded-l-none h-8 text-xs sm:text-sm px-2 sm:px-3"
               onClick={() => setViewMode('list')}
               size="sm"
             >
-              <List className="h-4 w-4 mr-1" />
+              <List className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               List
             </Button>
           </div>
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash className="h-4 w-4 mr-1" /> Delete All
+              <Button variant="destructive" size="sm" className="h-8 text-xs sm:text-sm">
+                <Trash className="h-3 w-3 sm:h-4 sm:w-4 mr-1" /> Delete All
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -274,15 +303,15 @@ const TasksPage = () => {
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Check className="mr-2 h-4 w-4" /> Add Task
+              <Button onClick={resetForm} size="sm" className="h-8 text-xs sm:text-sm">
+                <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1" /> Add Task
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-3">
                 <div className="grid gap-2">
                   <Label htmlFor="title">Title</Label>
                   <Input
@@ -313,12 +342,12 @@ const TasksPage = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status</Label>
                   <Select value={taskStatus} onValueChange={(value) => setTaskStatus(value as Status)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       {statusList.map((status) => (
-                        <SelectItem key={status} value={status} className="text-xs">
+                        <SelectItem key={status} value={status} className="text-xs sm:text-sm">
                           {status}
                         </SelectItem>
                       ))}
@@ -346,22 +375,22 @@ const TasksPage = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select value={taskPriority} onValueChange={(value) => setTaskPriority(value as Priority)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low" className="text-xs sm:text-sm">Low</SelectItem>
+                      <SelectItem value="medium" className="text-xs sm:text-sm">Medium</SelectItem>
+                      <SelectItem value="high" className="text-xs sm:text-sm">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} size="sm">
                   Cancel
                 </Button>
-                <Button onClick={handleCreateTask}>
+                <Button onClick={handleCreateTask} size="sm">
                   Create Task
                 </Button>
               </DialogFooter>
@@ -372,14 +401,14 @@ const TasksPage = () => {
 
       {viewMode === 'date' && (
         <div className="flex items-center justify-between mb-2">
-          <Button variant="outline" size="icon" onClick={() => navigateDate('prev')}>
+          <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => navigateDate('prev')}>
             <span className="sr-only">Previous</span>
             <span>&lt;</span>
           </Button>
-          <h2 className="text-base sm:text-xl font-semibold">
+          <h2 className="text-sm sm:text-xl font-semibold">
             {format(selectedDate, "MMMM d, yyyy")}
           </h2>
-          <Button variant="outline" size="icon" onClick={() => navigateDate('next')}>
+          <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => navigateDate('next')}>
             <span className="sr-only">Next</span>
             <span>&gt;</span>
           </Button>
@@ -389,31 +418,30 @@ const TasksPage = () => {
       {loading ? (
         <div className="text-center py-6">Loading tasks...</div>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 sm:gap-2">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => (
             <div 
               key={task.id} 
               className={`flex items-center border-b last:border-b-0 px-2 py-2 gap-2 ${task.status === "completed" ? "opacity-70" : ""}`}
-              style={{fontSize: '0.95rem'}}
             >
               <div className="flex-shrink-0 flex flex-col items-center gap-1">
                 {getStatusIcon(task.status)}
-                <Badge className={`px-2 py-0.5 text-xs ${getStatusColor(task.status)}`}>
+                <Badge className={`px-1 sm:px-2 py-0 sm:py-0.5 text-[10px] sm:text-xs ${getStatusColor(task.status)}`}>
                   {task.status}
                 </Badge>
               </div>
               
               <div className="flex-1 min-w-0 truncate">
-                <div className="flex items-center min-w-0 gap-2">
-                  <span className={`font-medium truncate ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+                <div className="flex items-center min-w-0 gap-1 sm:gap-2">
+                  <span className={`font-medium truncate text-xs sm:text-sm ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
                     {task.title}
                   </span>
-                  {task.priority === 'high' && <span className="text-xs text-red-500 border border-red-300 bg-red-50 rounded px-1 ml-1">HIGH</span>}
-                  {task.priority === 'medium' && <span className="text-xs text-yellow-700 border border-yellow-200 bg-yellow-50 rounded px-1 ml-1">MED</span>}
-                  {task.priority === 'low' && <span className="text-xs text-green-700 border border-green-200 bg-green-50 rounded px-1 ml-1">LOW</span>}
+                  {task.priority === 'high' && <span className="text-[10px] sm:text-xs text-red-500 border border-red-300 bg-red-50 rounded px-1 ml-1">HIGH</span>}
+                  {task.priority === 'medium' && <span className="text-[10px] sm:text-xs text-yellow-700 border border-yellow-200 bg-yellow-50 rounded px-1 ml-1">MED</span>}
+                  {task.priority === 'low' && <span className="text-[10px] sm:text-xs text-green-700 border border-green-200 bg-green-50 rounded px-1 ml-1">LOW</span>}
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-muted-foreground">
+                <div className="flex flex-wrap gap-x-2 sm:gap-x-3 gap-y-1 items-center text-[10px] sm:text-xs text-muted-foreground">
                   <span>PIC: {task.pic}</span>
                   <span>Lokasi: {getLocationDescription(task.location)}</span>
                   <span>Deadline: {format(task.deadline, "MMM d, yyyy")} (<span className="italic">{getTaskStatusMessage(task.deadline)}</span>)</span>
@@ -422,7 +450,7 @@ const TasksPage = () => {
 
               <div className="flex flex-col items-end gap-1 min-w-[110px]">
                 <Select value={task.status} onValueChange={(value) => handleUpdateTaskStatus(task.id, value as Status)}>
-                  <SelectTrigger className="h-7 w-[90px] text-xs border rounded bg-white/80">
+                  <SelectTrigger className="h-6 sm:h-7 w-[80px] sm:w-[90px] text-[10px] sm:text-xs border rounded bg-white/80">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -434,26 +462,58 @@ const TasksPage = () => {
                   </SelectContent>
                 </Select>
 
-                {task.status !== 'completed' && task.status !== 'canceled' && (
+                <div className="flex gap-1">
+                  {task.status !== 'completed' && task.status !== 'canceled' && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="h-6 sm:h-7 px-1 sm:px-2 text-[10px] sm:text-xs"
+                      onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+                    >
+                      <Check className="h-3 w-3 mr-1" /> Done
+                    </Button>
+                  )}
+                  
                   <Button 
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+                    className="h-6 sm:h-7 px-1 sm:px-2 text-[10px] sm:text-xs"
+                    onClick={() => openDeleteDialog(task.id)}
                   >
-                    <Check className="h-3 w-3 mr-1" /> Complete
+                    <Trash2 className="h-3 w-3" />
                   </Button>
-                )}
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center text-muted-foreground py-4">
+          <div className="text-center text-muted-foreground py-4 text-xs sm:text-sm">
             {viewMode === 'date' ? 'No tasks for this day' : 'No tasks found'}
           </div>
         )}
         </div>
       )}
+
+      {/* Delete Task Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTaskToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => taskToDelete && handleDeleteTask(taskToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

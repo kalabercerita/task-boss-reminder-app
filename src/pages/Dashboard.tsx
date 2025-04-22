@@ -21,15 +21,21 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, 
 import ColorThemeSwitcher from "../components/ColorThemeSwitcher";
 import { Link } from "react-router-dom";
 
-const prepareLocationData = (tasks: Task[]) => {
+const prepareLocationData = (tasks: Task[], selectedMonth: number, selectedYear: number) => {
   const colorMap: Record<string, string> = {
     "BOSQU": "#818cf8",
     "RUMAH": "#34d399",
     "HP GOJEK": "#fbbf24",
     "LAINNYA": "#94a3b8"
   };
+  
+  const filteredTasks = tasks.filter(task => {
+    const taskDate = new Date(task.deadline);
+    return getMonth(taskDate) === selectedMonth && getYear(taskDate) === selectedYear;
+  });
+  
   const tmp: Record<string, number> = {};
-  tasks.forEach((t) => {
+  filteredTasks.forEach((t) => {
     const loc = ["BOSQU", "RUMAH", "HP GOJEK"].includes(t.location) ? t.location : "LAINNYA";
     tmp[loc] = (tmp[loc] || 0) + 1;
   });
@@ -40,7 +46,12 @@ const prepareLocationData = (tasks: Task[]) => {
   }));
 };
 
-const prepareStatusData = (tasks: Task[]) => {
+const prepareStatusData = (tasks: Task[], selectedMonth: number, selectedYear: number) => {
+  const filteredTasks = tasks.filter(task => {
+    const taskDate = new Date(task.deadline);
+    return getMonth(taskDate) === selectedMonth && getYear(taskDate) === selectedYear;
+  });
+  
   const statusData = [
     { name: 'To Do', value: 0, color: '#94a3b8' },
     { name: 'In Progress', value: 0, color: '#3b82f6' },
@@ -51,7 +62,7 @@ const prepareStatusData = (tasks: Task[]) => {
     { name: 'Canceled', value: 0, color: '#6b7280' }
   ];
   
-  tasks.forEach(task => {
+  filteredTasks.forEach(task => {
     if (task.status === 'todo') {
       statusData[0].value += 1;
     } else if (task.status === 'in-progress') {
@@ -191,10 +202,9 @@ const Dashboard = () => {
     (task) => task.status === "completed"
   );
 
-  const monthlyTaskData = prepareMonthlyTaskData(tasks);
   const dailyTaskData = prepareDailyTaskData();
-  const statusData = prepareStatusData(tasks);
-  const locationData = prepareLocationData(tasks);
+  const statusData = prepareStatusData(tasks, selectedMonth, selectedYear);
+  const locationData = prepareLocationData(tasks, selectedMonth, selectedYear);
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -352,28 +362,28 @@ const Dashboard = () => {
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex gap-3 items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+        <div className="flex gap-2 sm:gap-3 items-center flex-wrap">
           <ColorThemeSwitcher />
           <Link to="/task-report">
-            <Button variant="outline" size="sm">
-              <FileText className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm whitespace-nowrap">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Task Report
             </Button>
           </Link>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="mr-2 h-4 w-4" /> Quick Add Task
+              <Button onClick={resetForm} size="sm" className="text-xs sm:text-sm whitespace-nowrap">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Add Task
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-3 py-3">
                 <div className="grid gap-2">
                   <Label htmlFor="title">Title</Label>
                   <Input
@@ -404,7 +414,7 @@ const Dashboard = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status</Label>
                   <Select value={taskStatus} onValueChange={(value) => setTaskStatus(value as Status)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -429,7 +439,7 @@ const Dashboard = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select value={taskPriority} onValueChange={(value) => setTaskPriority(value as Priority)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,7 +452,7 @@ const Dashboard = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="location">Location</Label>
                   <Select value={taskLocation} onValueChange={(value) => setTaskLocation(value as Location)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -454,10 +464,10 @@ const Dashboard = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} size="sm">
                   Cancel
                 </Button>
-                <Button onClick={handleCreateTask}>
+                <Button onClick={handleCreateTask} size="sm">
                   Create Task
                 </Button>
               </DialogFooter>
@@ -472,59 +482,59 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <Card>
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Daily Task Overview</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-base sm:text-lg">Daily Task Overview</CardTitle>
                   <div className="flex items-center gap-2">
                     <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                      <SelectTrigger className="w-[130px] h-8">
+                      <SelectTrigger className="w-[100px] sm:w-[130px] h-7 sm:h-8 text-xs">
                         <SelectValue placeholder="Select month" />
                       </SelectTrigger>
                       <SelectContent>
                         {months.map((month, index) => (
-                          <SelectItem key={index} value={index.toString()}>
+                          <SelectItem key={index} value={index.toString()} className="text-xs sm:text-sm">
                             {month}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                      <SelectTrigger className="w-[90px] h-8">
+                      <SelectTrigger className="w-[70px] sm:w-[90px] h-7 sm:h-8 text-xs">
                         <SelectValue placeholder="Year" />
                       </SelectTrigger>
                       <SelectContent>
                         {yearOptions.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
+                          <SelectItem key={year} value={year.toString()} className="text-xs sm:text-sm">
                             {year}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <ChartBar className="h-5 w-5 text-muted-foreground" />
+                    <ChartBar className="h-4 w-4 text-muted-foreground hidden sm:block" />
                   </div>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Task distribution by day for {months[selectedMonth]} {selectedYear}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0 h-80">
+              <CardContent className="pt-0 h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={dailyTaskData}
                     margin={{
                       top: 20,
-                      right: 30,
+                      right: 20,
                       left: 0,
                       bottom: 5,
                     }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip contentStyle={{ fontSize: '11px' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
                     <Bar dataKey="total" name="Total Tasks" fill="#9333ea" />
                     <Bar dataKey="completed" name="Completed" fill="#22c55e" />
                     <Bar dataKey="overdue" name="Overdue" fill="#ef4444" />
@@ -533,18 +543,18 @@ const Dashboard = () => {
               </CardContent>
             </Card>
             
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Task Status</CardTitle>
-                    <ChartPie className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-base sm:text-lg">Task Status</CardTitle>
+                    <ChartPie className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <CardDescription>
-                    Distribution of tasks by status
+                  <CardDescription className="text-xs sm:text-sm">
+                    Distribution of tasks by status ({months[selectedMonth]} {selectedYear})
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0 h-36">
+                <CardContent className="pt-0 h-32 sm:h-36">
                   {statusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -562,11 +572,11 @@ const Dashboard = () => {
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip contentStyle={{ fontSize: '11px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs sm:text-sm">
                       No task data available
                     </div>
                   )}
@@ -576,14 +586,14 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Task Location</CardTitle>
-                    <ChartPie className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-base sm:text-lg">Task Location</CardTitle>
+                    <ChartPie className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <CardDescription>
-                    Tasks grouped by location
+                  <CardDescription className="text-xs sm:text-sm">
+                    Tasks grouped by location ({months[selectedMonth]} {selectedYear})
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0 h-36">
+                <CardContent className="pt-0 h-32 sm:h-36">
                   {locationData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -601,11 +611,11 @@ const Dashboard = () => {
                             <Cell key={`cell-location-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip contentStyle={{ fontSize: '11px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs sm:text-sm">
                       No task data available
                     </div>
                   )}
@@ -614,44 +624,46 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="bg-secondary/50 pb-2">
-                <CardTitle className="text-lg">Today's Tasks</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">Today's Tasks</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {todayTasks.length === 0
                     ? "No tasks for today"
                     : `${todayTasks.length} tasks to do today`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4 max-h-[350px] overflow-y-auto">
-                <div className="space-y-3">
+              <CardContent className="pt-2 max-h-[280px] sm:max-h-[350px] overflow-y-auto">
+                <div className="space-y-2">
                   {todayTasks.length > 0 ? (
                     todayTasks.map((task) => (
                       <div key={task.id} className="flex items-center justify-between bg-card p-2 rounded-md border">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{task.title}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {task.pic} • {task.location}
+                        <div className="flex-1 min-w-0 pr-1">
+                          <div className="font-medium truncate text-xs">
+                            {task.title}
+                          </div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                            PIC: {task.pic} • {getLocationDescription(task.location)}
                           </div>
                         </div>
                         <Select
                           value={task.status}
                           onValueChange={(value: Status) => handleStatusChange(task.id, value)}
                         >
-                          <SelectTrigger className="h-8 w-[110px]">
+                          <SelectTrigger className="h-6 sm:h-8 w-[80px] sm:w-[110px] text-[10px] sm:text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="todo">Todo</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="todo" className="text-xs">Todo</SelectItem>
+                            <SelectItem value="in-progress" className="text-xs">In Progress</SelectItem>
+                            <SelectItem value="completed" className="text-xs">Completed</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4 text-muted-foreground">
+                    <div className="text-center py-4 text-muted-foreground text-xs sm:text-sm">
                       No tasks scheduled for today
                     </div>
                   )}
@@ -661,44 +673,44 @@ const Dashboard = () => {
             
             <Card>
               <CardHeader className="bg-secondary/50 pb-2">
-                <CardTitle className="text-lg">Upcoming Tasks</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">Upcoming Tasks</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {upcomingTasks.length === 0
                     ? "No upcoming tasks"
                     : `${upcomingTasks.length} tasks coming up`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
+              <CardContent className="pt-2">
+                <div className="space-y-2">
                   {upcomingTasks.length > 0 ? (
                     upcomingTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border">
-                        <div>
-                          <div className="font-medium">{task.title}</div>
-                          <div className="text-xs text-muted-foreground">
+                      <div key={task.id} className="flex items-start justify-between bg-card p-2 rounded-md border">
+                        <div className="min-w-0 pr-1">
+                          <div className="font-medium truncate text-xs sm:text-sm">{task.title}</div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
                             {format(task.deadline, "MMM d, yyyy")} • {task.pic}
-                            <div className="text-xs italic mt-1">
+                            <div className="text-[10px] sm:text-xs italic mt-1">
                               {getTaskDueText(task.deadline)}
                             </div>
                           </div>
                         </div>
-                        <Badge variant="outline" className={
-                          task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        <Badge variant="outline" className={`text-[10px] px-1 sm:px-2 py-0 sm:py-0.5
+                          ${task.status === 'completed' ? 'bg-green-100 text-green-800' :
                           task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
                           task.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }>
+                          'bg-gray-100 text-gray-800'}`}
+                        >
                           {task.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4 text-muted-foreground">
+                    <div className="text-center py-4 text-muted-foreground text-xs sm:text-sm">
                       No upcoming tasks
                     </div>
                   )}
                   {upcomingTasks.length > 5 && (
-                    <div className="text-center text-sm text-primary">
+                    <div className="text-center text-[10px] sm:text-sm text-primary">
                       +{upcomingTasks.length - 5} more tasks
                     </div>
                   )}
@@ -708,39 +720,39 @@ const Dashboard = () => {
             
             <Card>
               <CardHeader className="bg-secondary/50 pb-2">
-                <CardTitle className="text-lg">Overdue Tasks</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">Overdue Tasks</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {overdueTasks.length === 0
                     ? "No overdue tasks"
                     : `${overdueTasks.length} tasks overdue`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
+              <CardContent className="pt-2">
+                <div className="space-y-2">
                   {overdueTasks.length > 0 ? (
                     overdueTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border border-destructive/30">
-                        <div>
-                          <div className="font-medium">{task.title}</div>
-                          <div className="text-xs text-destructive">
+                      <div key={task.id} className="flex items-start justify-between bg-card p-2 rounded-md border border-destructive/30">
+                        <div className="min-w-0 pr-1">
+                          <div className="font-medium truncate text-xs sm:text-sm">{task.title}</div>
+                          <div className="text-[10px] sm:text-xs text-destructive">
                             Due {format(task.deadline, "MMM d, yyyy")} • {task.pic}
-                            <div className="text-xs italic mt-1">
+                            <div className="text-[10px] sm:text-xs italic mt-1">
                               {getTaskDueText(task.deadline)}
                             </div>
                           </div>
                         </div>
-                        <Badge variant="outline" className="bg-red-100 text-red-800">
+                        <Badge variant="outline" className="bg-red-100 text-red-800 text-[10px] px-1 sm:px-2 py-0 sm:py-0.5">
                           {task.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4 text-muted-foreground">
+                    <div className="text-center py-4 text-muted-foreground text-xs sm:text-sm">
                       No overdue tasks
                     </div>
                   )}
                   {overdueTasks.length > 5 && (
-                    <div className="text-center text-sm text-primary">
+                    <div className="text-center text-[10px] sm:text-sm text-primary">
                       +{overdueTasks.length - 5} more tasks
                     </div>
                   )}
@@ -750,34 +762,34 @@ const Dashboard = () => {
             
             <Card>
               <CardHeader className="bg-secondary/50 pb-2">
-                <CardTitle className="text-lg">Completed Tasks</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">Completed Tasks</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {completedTasks.length === 0
                     ? "No completed tasks"
                     : `${completedTasks.length} tasks completed`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
+              <CardContent className="pt-2">
+                <div className="space-y-2">
                   {completedTasks.length > 0 ? (
                     completedTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-start justify-between bg-card p-3 rounded-md border opacity-70">
-                        <div>
-                          <div className="font-medium line-through">{task.title}</div>
-                          <div className="text-xs text-muted-foreground">
+                      <div key={task.id} className="flex items-start justify-between bg-card p-2 rounded-md border opacity-70">
+                        <div className="min-w-0 pr-1">
+                          <div className="font-medium line-through truncate text-xs sm:text-sm">{task.title}</div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
                             {task.pic} • {task.location}
                           </div>
                         </div>
-                        <Badge variant="outline">Completed</Badge>
+                        <Badge variant="outline" className="text-[10px] px-1 sm:px-2 py-0 sm:py-0.5">Completed</Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-4 text-muted-foreground">
+                    <div className="text-center py-4 text-muted-foreground text-xs sm:text-sm">
                       No completed tasks
                     </div>
                   )}
                   {completedTasks.length > 5 && (
-                    <div className="text-center text-sm text-primary">
+                    <div className="text-center text-[10px] sm:text-sm text-primary">
                       +{completedTasks.length - 5} more tasks
                     </div>
                   )}

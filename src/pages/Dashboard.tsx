@@ -39,7 +39,7 @@ const prepareLocationData = (tasks: Task[]) => {
   }));
 };
 
-const prepareMonthlyTaskData = () => {
+const prepareMonthlyTaskData = (tasks: Task[]) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentYear = new Date().getFullYear();
   
@@ -60,10 +60,7 @@ const prepareMonthlyTaskData = () => {
       if (task.status === 'completed') {
         monthlyData[taskMonth].completed += 1;
       } else if (task.status === 'overdue' || (isPast(task.deadline) && 
-                task.status !== 'completed' && 
-                task.status !== 'canceled' && 
-                task.status !== 'hold' && 
-                task.status !== 'to-review')) {
+                !['completed', 'canceled', 'hold', 'to-review'].includes(task.status))) {
         monthlyData[taskMonth].overdue += 1;
       }
     }
@@ -72,7 +69,7 @@ const prepareMonthlyTaskData = () => {
   return monthlyData;
 };
 
-const prepareStatusData = () => {
+const prepareStatusData = (tasks: Task[]) => {
   const statusData = [
     { name: 'To Do', value: 0, color: '#94a3b8' },
     { name: 'In Progress', value: 0, color: '#3b82f6' },
@@ -91,10 +88,7 @@ const prepareStatusData = () => {
     } else if (task.status === 'completed') {
       statusData[2].value += 1;
     } else if (task.status === 'overdue' || (isPast(task.deadline) && 
-                task.status !== 'completed' && 
-                task.status !== 'canceled' && 
-                task.status !== 'hold' && 
-                task.status !== 'to-review')) {
+                !['completed', 'canceled', 'hold', 'to-review'].includes(task.status))) {
       statusData[3].value += 1;
     } else if (task.status === 'hold') {
       statusData[4].value += 1;
@@ -164,8 +158,8 @@ const Dashboard = () => {
     (task) => task.status === "completed"
   );
 
-  const monthlyTaskData = prepareMonthlyTaskData();
-  const statusData = prepareStatusData();
+  const monthlyTaskData = prepareMonthlyTaskData(tasks);
+  const statusData = prepareStatusData(tasks);
   const locationData = prepareLocationData(tasks);
 
   const getStatusColor = (status: Status) => {

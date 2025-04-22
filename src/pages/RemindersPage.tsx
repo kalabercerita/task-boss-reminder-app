@@ -335,7 +335,7 @@ const RemindersPage = () => {
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You can use {name}, {date}, {count}, and {tasks} as placeholders.
+                  You can use {"{name}"}, {"{date}"}, {"{count}"}, and {"{tasks}"} as placeholders.
                 </p>
               </div>
             </CardContent>
@@ -386,7 +386,7 @@ const RemindersPage = () => {
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You can use {name}, {date}, {count}, {days}, and {tasks} as placeholders.
+                  You can use {"{name}"}, {"{date}"}, {"{count}"}, {"{days}"}, and {"{tasks}"} as placeholders.
                 </p>
               </div>
             </CardContent>

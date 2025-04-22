@@ -4,12 +4,12 @@ import { Task, Status, Priority, Location } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format, isToday, isPast, isFuture, differenceInDays, startOfMonth, endOfMonth, parseISO, getMonth, getYear } from "date-fns";
+import { format, isToday, isPast, isFuture, differenceInDays, startOfMonth, endOfMonth, parseISO, getMonth, getYear, getDaysInMonth, setMonth, setYear, getDate } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SAMPLE_TASKS } from "@/lib/default-data";
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar, Clock, X, Check, 
-  AlertCircle, List, ChartBar, ChartPie
+  AlertCircle, List, ChartBar, ChartPie, FileText, Download
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import ColorThemeSwitcher from "../components/ColorThemeSwitcher";
+import { Link } from "react-router-dom";
 
 const prepareLocationData = (tasks: Task[]) => {
   const colorMap: Record<string, string> = {
@@ -37,36 +38,6 @@ const prepareLocationData = (tasks: Task[]) => {
     value: count,
     color: colorMap[name] || "#d1d5db"
   }));
-};
-
-const prepareMonthlyTaskData = (tasks: Task[]) => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentYear = new Date().getFullYear();
-  
-  const monthlyData = months.map((month, index) => ({
-    name: month,
-    total: 0,
-    completed: 0,
-    overdue: 0
-  }));
-  
-  tasks.forEach(task => {
-    const taskMonth = getMonth(task.deadline);
-    const taskYear = getYear(task.deadline);
-    
-    if (taskYear === currentYear) {
-      monthlyData[taskMonth].total += 1;
-      
-      if (task.status === 'completed') {
-        monthlyData[taskMonth].completed += 1;
-      } else if (task.status === 'overdue' || (isPast(task.deadline) && 
-                !['completed', 'canceled', 'hold', 'to-review'].includes(task.status))) {
-        monthlyData[taskMonth].overdue += 1;
-      }
-    }
-  });
-  
-  return monthlyData;
 };
 
 const prepareStatusData = (tasks: Task[]) => {
@@ -107,6 +78,8 @@ const Dashboard = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(getMonth(new Date()));
+  const [selectedYear, setSelectedYear] = useState(getYear(new Date()));
   
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
@@ -137,6 +110,66 @@ const Dashboard = () => {
     fetchTasks();
   }, [toast]);
 
+  const prepareDailyTaskData = () => {
+    const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
+      name: (i + 1).toString(),
+      total: 0,
+      completed: 0,
+      overdue: 0
+    }));
+    
+    tasks.forEach(task => {
+      const taskDate = task.deadline;
+      const taskMonth = getMonth(taskDate);
+      const taskYear = getYear(taskDate);
+      const taskDay = getDate(taskDate) - 1;
+      
+      if (taskMonth === selectedMonth && taskYear === selectedYear && taskDay >= 0 && taskDay < daysInMonth) {
+        dailyData[taskDay].total += 1;
+        
+        if (task.status === 'completed') {
+          dailyData[taskDay].completed += 1;
+        } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                  !['completed', 'canceled', 'hold', 'to-review'].includes(task.status))) {
+          dailyData[taskDay].overdue += 1;
+        }
+      }
+    });
+    
+    return dailyData;
+  };
+
+  const prepareMonthlyTaskData = (tasks: Task[]) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    
+    const monthlyData = months.map((month, index) => ({
+      name: month,
+      total: 0,
+      completed: 0,
+      overdue: 0
+    }));
+    
+    tasks.forEach(task => {
+      const taskMonth = getMonth(task.deadline);
+      const taskYear = getYear(task.deadline);
+      
+      if (taskYear === currentYear) {
+        monthlyData[taskMonth].total += 1;
+        
+        if (task.status === 'completed') {
+          monthlyData[taskMonth].completed += 1;
+        } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                  !['completed', 'canceled', 'hold', 'to-review'].includes(task.status))) {
+          monthlyData[taskMonth].overdue += 1;
+        }
+      }
+    });
+    
+    return monthlyData;
+  };
+
   const upcomingTasks = tasks.filter((task) => 
     isFuture(task.deadline) && 
     task.status !== "completed" && 
@@ -159,6 +192,7 @@ const Dashboard = () => {
   );
 
   const monthlyTaskData = prepareMonthlyTaskData(tasks);
+  const dailyTaskData = prepareDailyTaskData();
   const statusData = prepareStatusData(tasks);
   const locationData = prepareLocationData(tasks);
 
@@ -309,12 +343,26 @@ const Dashboard = () => {
     }
   };
 
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const currentYear = getYear(new Date());
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-3 items-center">
           <ColorThemeSwitcher />
+          <Link to="/task-report">
+            <Button variant="outline" size="sm">
+              <FileText className="h-4 w-4 mr-2" />
+              Task Report
+            </Button>
+          </Link>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
@@ -428,17 +476,43 @@ const Dashboard = () => {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Monthly Task Overview</CardTitle>
-                  <ChartBar className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-lg">Daily Task Overview</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                      <SelectTrigger className="w-[130px] h-8">
+                        <SelectValue placeholder="Select month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                      <SelectTrigger className="w-[90px] h-8">
+                        <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <ChartBar className="h-5 w-5 text-muted-foreground" />
+                  </div>
                 </div>
                 <CardDescription>
-                  Task distribution by month
+                  Task distribution by day for {months[selectedMonth]} {selectedYear}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0 h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={monthlyTaskData}
+                    data={dailyTaskData}
                     margin={{
                       top: 20,
                       right: 30,

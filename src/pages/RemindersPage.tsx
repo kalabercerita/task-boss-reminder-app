@@ -98,7 +98,6 @@ const RemindersPage = () => {
             description: "Reminder settings updated successfully",
           });
         } else {
-          // Handle case where result is null
           toast({
             title: "Warning",
             description: "Settings may not have been saved properly",

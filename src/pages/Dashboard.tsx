@@ -550,10 +550,10 @@ const Dashboard = () => {
                     : `${todayTasks.length} tasks to do today`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 max-h-[350px] overflow-y-auto">
                 <div className="space-y-3">
                   {todayTasks.length > 0 ? (
-                    todayTasks.slice(0, 5).map((task) => (
+                    todayTasks.map((task) => (
                       <div key={task.id} className="flex items-center justify-between bg-card p-2 rounded-md border">
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{task.title}</div>
@@ -579,11 +579,6 @@ const Dashboard = () => {
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
                       No tasks scheduled for today
-                    </div>
-                  )}
-                  {todayTasks.length > 5 && (
-                    <div className="text-center text-sm text-primary">
-                      +{todayTasks.length - 5} more tasks
                     </div>
                   )}
                 </div>

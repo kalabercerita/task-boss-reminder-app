@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_REMINDER_SETTINGS } from '@/lib/default-data';
@@ -239,15 +238,10 @@ const RemindersPage = () => {
     }
 
     try {
-      // Update API key if one is provided in settings
-      const apiKey = reminderSettings.whatsapp?.apiKey;
-      
-      await sendWhatsAppMessage(
-        testPhone,
-        testMessage,
-        false,
-        apiKey
-      );
+      await sendWhatsAppMessage({
+        to: testPhone,
+        message: testMessage,
+      });
       
       toast({
         title: "Success",

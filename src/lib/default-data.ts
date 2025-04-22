@@ -1,3 +1,4 @@
+
 import { ReminderSettings, Task } from "@/types";
 import { addDays } from "date-fns";
 
@@ -45,7 +46,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "high",
     location: "BOSQU",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "2",
@@ -57,7 +59,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "high",
     location: "BOSQU",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "3",
@@ -69,7 +72,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "medium",
     location: "RUMAH",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "4",
@@ -81,7 +85,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "medium",
     location: "HP GOJEK",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "5",
@@ -93,7 +98,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "low",
     location: "RUMAH",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "6",
@@ -105,7 +111,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "low",
     location: "RUMAH",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "7",
@@ -117,7 +124,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "medium",
     location: "HP GOJEK",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "8",
@@ -129,7 +137,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "high",
     location: "BOSQU",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "9",
@@ -141,7 +150,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "high",
     location: "BOSQU",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "10",
@@ -153,7 +163,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "medium",
     location: "BOSQU",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "11",
@@ -165,7 +176,8 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "medium",
     location: "RUMAH",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   },
   {
     id: "12",
@@ -177,6 +189,7 @@ export const SAMPLE_TASKS: Task[] = [
     priority: "high",
     location: "HP GOJEK",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    user_id: "sample-user-id"
   }
 ];

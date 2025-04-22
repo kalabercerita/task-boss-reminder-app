@@ -115,7 +115,11 @@ const Dashboard = () => {
         
         if (task.status === 'completed') {
           monthlyData[taskMonth].completed += 1;
-        } else if (task.status === 'overdue' || (isPast(task.deadline) && task.status !== 'completed' && task.status !== 'canceled')) {
+        } else if (task.status === 'overdue' || (isPast(task.deadline) && 
+                  task.status !== 'completed' && 
+                  task.status !== 'canceled' && 
+                  task.status !== 'hold' && 
+                  task.status !== 'to-review')) {
           monthlyData[taskMonth].overdue += 1;
         }
       }
@@ -123,7 +127,7 @@ const Dashboard = () => {
     
     return monthlyData;
   };
-  
+
   const prepareStatusData = () => {
     const statusData = [
       { name: 'To Do', value: 0, color: '#94a3b8' },

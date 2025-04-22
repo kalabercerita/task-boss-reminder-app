@@ -1,3 +1,4 @@
+
 export type Status = 'todo' | 'in-progress' | 'to-review' | 'hold' | 'completed' | 'canceled' | 'overdue';
 export type Priority = 'low' | 'medium' | 'high';
 export type Location = string;
@@ -17,11 +18,13 @@ export interface Task {
 }
 
 export interface Contact {
+  id: string;
   name: string;
   phoneNumber: string;
 }
 
 export interface WhatsAppGroup {
+  id: string;
   name: string;
   groupId: string;
 }
